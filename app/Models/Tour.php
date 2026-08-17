@@ -43,7 +43,9 @@ class Tour extends Model
         'booking_settings',
         'created_by_admin_slug',
         'admin_slug',
-        'booking_count'
+        'booking_count',
+        'rating',
+        'review_count',
     ];
 
     protected $casts = [
@@ -58,6 +60,8 @@ class Tour extends Model
         'booking_settings' => 'array',
         'price_amount' => 'decimal:2',
         'locations' => 'array',
+        'rating' => 'decimal:1',
+        'review_count' => 'integer',
     ];
 
     public function getRouteKeyName(): string
@@ -73,6 +77,11 @@ class Tour extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class, 'tour_slug', 'tour_slug');
+    }
+
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(Rating::class, 'tour_slug', 'tour_slug');
     }
 
     public static function syncBookingCountFor(?string $tourSlug): void
@@ -125,6 +134,8 @@ class Tour extends Model
             'bookingSettings' => $this->booking_settings ?? [],
             'adminSlug' => $this->admin_slug,
             'bookingCount' => $this->booking_count,
+            'rating' => (float) $this->rating,
+            'reviewCount' => (int) $this->review_count,
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,
         ];

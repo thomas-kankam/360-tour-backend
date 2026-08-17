@@ -22,7 +22,7 @@
                     style="max-width: 600px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);">
                     <tr>
                         <td align="center" bgcolor="#586D39" style="padding: 30px 20px;">
-                            <img src="https://360toursghana.com/images/general_logo.png" alt="360 Tours Ghana"
+                            <img src="https://360toursghana.com/images/logo.png" alt="360 Tours Ghana"
                                 style="max-width: 160px; margin-bottom: 10px;">
                             <p style="margin: 0; font-size: 12px; letter-spacing: 2px; color: #f4f7ef; text-transform: uppercase;">
                                 360 Tours Ghana

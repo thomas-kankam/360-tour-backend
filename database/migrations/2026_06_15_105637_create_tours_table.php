@@ -40,6 +40,8 @@ return new class extends Migration
             $table->string('created_by_admin_slug')->nullable();
             $table->string('admin_slug')->nullable();
             $table->unsignedInteger('booking_count')->default(0);
+            $table->decimal('rating', 3, 1)->default(0);
+            $table->unsignedInteger('review_count')->default(0);
             $table->softDeletes();
             $table->timestamps();
 

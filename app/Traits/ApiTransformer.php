@@ -75,14 +75,12 @@ trait ApiTransformer
         int|string $statusCode = self::API_SUCCESS,
     ): JsonResponse {
         return self::apiResponse(false, 'Action Successful', (string) $statusCode, $reason, [
-            'items' => collect($paginator->items())->map($transform)->values()->all(),
+            'data' => collect($paginator->items())->map($transform)->values()->all(),
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
                 'last_page' => $paginator->lastPage(),
-                'from' => $paginator->firstItem(),
-                'to' => $paginator->lastItem(),
             ],
         ]);
     }

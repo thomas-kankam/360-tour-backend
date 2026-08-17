@@ -16,8 +16,11 @@ return new class extends Migration
             $table->text('message');
             $table->string('status')->default('new');
             $table->string('type')->default('general');
+            $table->string('client_slug')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index('client_slug');
         });
     }
 

@@ -1,6 +1,6 @@
 # 360 Tours Ghana API
 
-Laravel API backend for [360 Tours Ghana](https://360toursghana.com).
+Laravel 12 API backend for [360 Tours Ghana](https://360toursghana.com). Requires **PHP 8.4+** (including PHP 8.5).
 
 ## Actors
 
@@ -18,6 +18,17 @@ php artisan passport:install
 ```
 
 Configure Paystack, mail, and SMS in `.env`. API base URL defaults to `/api`.
+
+## Server deploy
+
+```bash
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+```
+
+Ensure cron runs `php artisan schedule:run` every minute for the queue worker.
 
 ## Main route groups
 

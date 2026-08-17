@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Rating;
 use App\Models\Tour;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,5 +59,21 @@ class ListingController extends Controller
         }
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Listing retrieved', $listing->toListingArray());
+    }
+
+    public function reviews(Request $request, Tour $listing): JsonResponse
+    {
+        if ($listing->status !== 'published') {
+            return self::apiResponse(true, 'Action Unsuccessful', (string) self::API_NOT_FOUND, 'Listing not found', []);
+        }
+
+        $query = $listing->ratings()
+            ->with(['client', 'tour'])
+            ->where('status', 'approved')
+            ->latest();
+
+        $paginator = self::paginateQuery($request, $query);
+
+        return self::paginatedApiResponse('Reviews retrieved', $paginator, fn (Rating $rating) => $rating->toPublicReviewArray());
     }
 }
