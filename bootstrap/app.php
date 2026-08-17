@@ -8,6 +8,8 @@ use App\Models\Tour;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\PostTooLargeException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -48,5 +50,18 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (PostTooLargeException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'data' => [
+                        'status_code' => '413',
+                        'message' => 'Payload Too Large',
+                        'in_error' => true,
+                        'reason' => 'Request body exceeds the server limit (post_max_size). Upload images one at a time via POST /api/admin/uploads/images, then send the returned URLs in the tour payload. On the server, raise post_max_size and client_max_body_size (recommended: 64M).',
+                        'data' => [],
+                        'point_in_time' => now()->toIso8601String(),
+                    ],
+                ], 413);
+            }
+        });
     })->create();

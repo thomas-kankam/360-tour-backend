@@ -12,6 +12,8 @@ use App\Http\Controllers\Admin\AdminPaymentController;
 use App\Http\Controllers\Admin\AdminPermissionController;
 use App\Http\Controllers\Admin\AdminRatingController;
 use App\Http\Controllers\Admin\AdminRoleController;
+use App\Http\Controllers\Admin\AdminSystemController;
+use App\Http\Controllers\Admin\AdminUploadController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Client\ClientAuthenticationController;
 use App\Http\Controllers\Client\ClientBookingController;
@@ -74,6 +76,9 @@ Route::prefix('admin')->group(function () {
     Route::middleware('auth:admin-api')->group(function () {
         Route::post('logout', [AdminAuthenticationController::class, 'logout']);
         Route::post('update-profile', [AdminAuthenticationController::class, 'updateProfile']);
+
+        Route::post('uploads/images', [AdminUploadController::class, 'storeImage']);
+        Route::get('system/limits', [AdminSystemController::class, 'limits']);
 
         Route::middleware('admin.permission:listing_management')->group(function () {
             Route::get('listings', [AdminListingController::class, 'index']);

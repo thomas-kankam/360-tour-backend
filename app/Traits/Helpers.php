@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Models\Actor;
 use App\Models\Otp;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -58,6 +59,25 @@ trait Helpers
         $filePath = "uploads/images/{$fileName}";
 
         Storage::disk('public')->put($filePath, $decoded);
+
+        return config('custom.urls.backend_url') . "/storage/{$filePath}";
+    }
+
+    protected static function storeUploadedImage(?UploadedFile $file): ?string
+    {
+        if (! $file || ! $file->isValid()) {
+            return null;
+        }
+
+        $extension = $file->getClientOriginalExtension() ?: $file->extension();
+        $fileName = Str::uuid() . '.' . strtolower($extension);
+        $filePath = "uploads/images/{$fileName}";
+
+        $stored = Storage::disk('public')->put($filePath, $file->get());
+
+        if (! $stored) {
+            return null;
+        }
 
         return config('custom.urls.backend_url') . "/storage/{$filePath}";
     }

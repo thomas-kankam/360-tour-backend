@@ -30,6 +30,33 @@ php artisan route:cache
 
 Ensure cron runs `php artisan schedule:run` every minute for the queue worker.
 
+### Large tour payloads (images)
+
+Tour create/update accepts image URLs. Prefer uploading files first:
+
+```http
+POST /api/admin/uploads/images
+Content-Type: multipart/form-data
+
+image: (file, max 10MB)
+```
+
+Response includes `data.url` — use that for `coverImageUrl` / `galleryImageUrls` instead of base64 in JSON.
+
+If you still embed base64 in one JSON body, raise PHP and web server limits (recommended **64M**):
+
+```ini
+; php.ini
+post_max_size = 64M
+upload_max_filesize = 64M
+```
+
+```nginx
+client_max_body_size 64M;
+```
+
+Reload PHP-FPM and nginx after changes.
+
 ## Main route groups
 
 | Prefix | Guard | Purpose |
