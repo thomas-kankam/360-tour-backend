@@ -60,7 +60,7 @@ trait Helpers
 
         Storage::disk('public')->put($filePath, $decoded);
 
-        return config('custom.urls.backend_url') . "/storage/{$filePath}";
+        return static::storagePublicUrl($filePath);
     }
 
     protected static function storeUploadedImage(?UploadedFile $file): ?string
@@ -79,7 +79,53 @@ trait Helpers
             return null;
         }
 
-        return config('custom.urls.backend_url') . "/storage/{$filePath}";
+        return static::storagePublicUrl($filePath);
+    }
+
+    protected static function storagePublicUrl(string $filePath): string
+    {
+        $base = rtrim((string) config('custom.urls.backend_url'), '/');
+
+        return "{$base}/storage/{$filePath}";
+    }
+
+    protected static function normalizePublicUrl(?string $url): ?string
+    {
+        if (! $url || str_starts_with($url, 'data:')) {
+            return $url;
+        }
+
+        return preg_replace('#(?<=://[^/]+)/{2,}#', '/', $url);
+    }
+
+    protected static function decodeImageUrl(?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+
+        if (str_starts_with($url, 'data:')) {
+            return static::base64ImageDecode($url) ?? $url;
+        }
+
+        return static::normalizePublicUrl($url);
+    }
+
+    protected static function normalizeItineraryForOutput(array $itinerary): array
+    {
+        return array_values(array_map(function ($day) {
+            if (! is_array($day)) {
+                return $day;
+            }
+
+            $imageUrl = $day['imageUrl'] ?? $day['image_url'] ?? null;
+            if ($imageUrl) {
+                $day['imageUrl'] = static::normalizePublicUrl($imageUrl);
+                unset($day['image_url']);
+            }
+
+            return $day;
+        }, $itinerary));
     }
 
     protected static function deleteImage(?string $image_path): bool

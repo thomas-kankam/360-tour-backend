@@ -13,18 +13,15 @@ trait ListingMapper
     {
         $status = $data['status'] ?? 'draft';
         $cover = $data['coverImageUrl'] ?? $data['cover_image_url'] ?? null;
-        if ($cover && str_starts_with($cover, 'data:')) {
-            $cover = static::base64ImageDecode($cover);
-        }
+        $cover = static::decodeImageUrl($cover);
 
         $gallery = $data['galleryImageUrls'] ?? $data['gallery_image_urls'] ?? [];
-        $gallery = array_values(array_filter(array_map(function ($url) {
-            if ($url && str_starts_with($url, 'data:')) {
-                return static::base64ImageDecode($url);
-            }
+        $gallery = array_values(array_filter(array_map(
+            fn ($url) => static::decodeImageUrl($url),
+            $gallery
+        )));
 
-            return $url;
-        }, $gallery)));
+        $itinerary = static::mapItineraryImages($data['itinerary'] ?? []);
 
         return array_filter([
             'tour_slug' => $data['slug'] ?? $data['tour_slug'] ?? (string) Str::uuid(),
@@ -49,7 +46,7 @@ trait ListingMapper
             'gallery_image_urls' => $gallery,
             'description' => $data['description'] ?? null,
             'highlights' => $data['highlights'] ?? [],
-            'itinerary' => $data['itinerary'] ?? [],
+            'itinerary' => $itinerary,
             'included' => $data['included'] ?? [],
             'not_included' => $data['notIncluded'] ?? $data['not_included'] ?? [],
             'departure_dates' => $data['departureDates'] ?? $data['departure_dates'] ?? [],
@@ -67,5 +64,22 @@ trait ListingMapper
         $depositPercent = (int) ($settings['depositPercent'] ?? 100);
 
         return round($base * ($depositPercent / 100), 2);
+    }
+
+    protected static function mapItineraryImages(array $itinerary): array
+    {
+        return array_values(array_map(function ($day) {
+            if (! is_array($day)) {
+                return $day;
+            }
+
+            $imageUrl = $day['imageUrl'] ?? $day['image_url'] ?? null;
+            if ($imageUrl) {
+                $day['imageUrl'] = static::decodeImageUrl($imageUrl);
+                unset($day['image_url']);
+            }
+
+            return $day;
+        }, $itinerary));
     }
 }

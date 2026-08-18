@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Helpers;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tour extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, Helpers, SoftDeletes;
 
     protected $fillable = [
         'tour_slug',
@@ -123,11 +124,14 @@ class Tour extends Model
             'priceLabel' => $this->price_label,
             'badge' => $this->badge,
             'badgeVariant' => $this->badge_variant,
-            'coverImageUrl' => $this->cover_image_url,
-            'galleryImageUrls' => $this->gallery_image_urls ?? [],
+            'coverImageUrl' => static::normalizePublicUrl($this->cover_image_url),
+            'galleryImageUrls' => array_values(array_filter(array_map(
+                fn ($url) => static::normalizePublicUrl($url),
+                $this->gallery_image_urls ?? []
+            ))),
             'description' => $this->description,
             'highlights' => $this->highlights ?? [],
-            'itinerary' => $this->itinerary ?? [],
+            'itinerary' => static::normalizeItineraryForOutput($this->itinerary ?? []),
             'included' => $this->included ?? [],
             'notIncluded' => $this->not_included ?? [],
             'departureDates' => $this->departure_dates ?? [],
