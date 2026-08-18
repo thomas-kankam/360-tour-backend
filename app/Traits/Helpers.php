@@ -95,7 +95,27 @@ trait Helpers
             return $url;
         }
 
-        return preg_replace('#(?<=://[^/]+)/{2,}#', '/', $url);
+        $parts = parse_url($url);
+        if (! isset($parts['scheme'], $parts['host'])) {
+            return $url;
+        }
+
+        $path = preg_replace('#/+#', '/', $parts['path'] ?? '');
+
+        $normalized = $parts['scheme'] . '://' . $parts['host'];
+        if (isset($parts['port'])) {
+            $normalized .= ':' . $parts['port'];
+        }
+        $normalized .= $path;
+
+        if (isset($parts['query'])) {
+            $normalized .= '?' . $parts['query'];
+        }
+        if (isset($parts['fragment'])) {
+            $normalized .= '#' . $parts['fragment'];
+        }
+
+        return $normalized;
     }
 
     protected static function decodeImageUrl(?string $url): ?string
