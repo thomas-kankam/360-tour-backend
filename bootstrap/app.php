@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Cors;
 use App\Models\Booking;
 use App\Models\Contact;
 use App\Models\Invoice;
@@ -27,11 +28,16 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->remove([
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+
         $middleware->append([
             \App\Http\Middleware\TrustProxies::class,
         ]);
 
         $middleware->api(prepend: [
+            \App\Http\Middleware\AddCorsHeaders::class,
             \App\Http\Middleware\ForceJsonResponse::class,
         ]);
 
@@ -52,7 +58,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (PostTooLargeException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
+                return Cors::apply(response()->json([
                     'data' => [
                         'status_code' => '413',
                         'message' => 'Payload Too Large',
@@ -61,7 +67,7 @@ return Application::configure(basePath: dirname(__DIR__))
                         'data' => [],
                         'point_in_time' => now()->toIso8601String(),
                     ],
-                ], 413);
+                ], 413), $request);
             }
         });
 
@@ -89,6 +95,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 ],
             ];
 
-            return response()->json($payload, 500);
+            return Cors::apply(response()->json($payload, 500), $request);
         });
     })->create();

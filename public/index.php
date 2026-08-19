@@ -5,6 +5,9 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
+// VPS hosts with hardened PHP often block PCRE JIT; disable before any regex runs.
+ini_set('pcre.jit', '0');
+
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
     require $maintenance;
 }

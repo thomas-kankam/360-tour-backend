@@ -27,4 +27,4 @@ echo "==> Rebuilding production caches"
 php artisan config:cache
 php artisan route:cache
 
-echo "==> Done. Verify APP_DEBUG=false in .env and pcre.jit=0 in PHP-FPM."
+echo "==> Done. Verify APP_DEBUG=false, pcre.jit=0, and CORS_ALLOWED_ORIGINS in .env"
