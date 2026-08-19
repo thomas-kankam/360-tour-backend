@@ -23,10 +23,19 @@ Configure Paystack, mail, and SMS in `.env`. API base URL defaults to `/api`.
 
 ```bash
 composer install --no-dev --optimize-autoloader
+bash deploy/post-deploy.sh
 php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
 ```
+
+Production `.env` must have `APP_DEBUG=false`. Dev tools like Ignition are not installed with `--no-dev`; debug mode on production causes broken error pages.
+
+PHP on hardened VPS hosts may block PCRE JIT. Include in PHP-FPM config (`deploy/php/99-upload-limits.ini`):
+
+```ini
+pcre.jit=0
+```
+
+Then reload PHP-FPM. If errors persist, run `php artisan config:clear` before `config:cache`.
 
 Ensure cron runs `php artisan schedule:run` every minute for the queue worker.
 

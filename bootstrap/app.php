@@ -64,4 +64,31 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 413);
             }
         });
+
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            if (! $request->is('api/*') && ! $request->expectsJson()) {
+                return null;
+            }
+
+            if ($e instanceof PostTooLargeException) {
+                return null;
+            }
+
+            $payload = [
+                'data' => [
+                    'status_code' => '500',
+                    'message' => config('app.debug') ? $e->getMessage() : 'Server Error',
+                    'in_error' => true,
+                    'reason' => config('app.debug') ? $e->getMessage() : 'An unexpected error occurred.',
+                    'data' => config('app.debug') ? [
+                        'exception' => $e::class,
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ] : [],
+                    'point_in_time' => now()->toIso8601String(),
+                ],
+            ];
+
+            return response()->json($payload, 500);
+        });
     })->create();
