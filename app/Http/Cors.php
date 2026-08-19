@@ -17,10 +17,15 @@ class Cors
         }
 
         if (in_array('*', $allowedOrigins, true)) {
-            $response->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
+            if (config('cors.supports_credentials') && $origin) {
+                $response->headers->set('Access-Control-Allow-Origin', $origin);
+                $response->headers->set('Vary', 'Origin');
+            } else {
+                $response->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
+            }
         } elseif ($origin && in_array($origin, $allowedOrigins, true)) {
             $response->headers->set('Access-Control-Allow-Origin', $origin);
-            $response->headers->Vary('Origin', false);
+            $response->headers->set('Vary', 'Origin');
         }
 
         $methods = config('cors.allowed_methods', ['*']);
