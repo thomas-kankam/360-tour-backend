@@ -36,8 +36,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\TrustProxies::class,
         ]);
 
-        $middleware->api(prepend: [
+        $middleware->use([
             \App\Http\Middleware\AddCorsHeaders::class,
+        ]);
+
+        $middleware->api(prepend: [
             \App\Http\Middleware\ForceJsonResponse::class,
         ]);
 

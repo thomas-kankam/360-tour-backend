@@ -11,11 +11,15 @@ class AddCorsHeaders
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->isMethod('OPTIONS')) {
-            $response = response('', 204);
-        } else {
-            $response = $next($request);
+        if (! $request->is('api/*')) {
+            return $next($request);
         }
+
+        if ($request->isMethod('OPTIONS')) {
+            return Cors::apply(response('', 204), $request);
+        }
+
+        $response = $next($request);
 
         return Cors::apply($response, $request);
     }
