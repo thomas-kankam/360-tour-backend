@@ -20,7 +20,7 @@ class ClientRegisterRequest extends FormRequest
             'phone_number' => ['nullable', 'string', 'max:20', Rule::unique('clients', 'phone_number')],
             'email' => ['required', 'email', 'max:255', Rule::unique('clients', 'email')],
             'location' => ['nullable', 'string', 'max:255'],
-            'profile_image'   => 'nullable|starts_with:data:,http://,https://',
+            'profile_image'   => 'nullable|string',
         ];
     }
 }

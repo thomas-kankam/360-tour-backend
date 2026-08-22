@@ -26,7 +26,7 @@ class Admin extends Actor
         'deleted_at'        => 'datetime',
         'created_at'     => 'datetime',
         'updated_at'     => 'datetime',
-        "profile_image"     => "array",
+        "profile_image"     => "string",
         "status"            => "string",
     ];
 
@@ -48,6 +48,8 @@ class Admin extends Actor
 
     public function toAdminArray(): array
     {
+        static::persistActorProfileImage($this);
+
         return [
             'adminSlug' => $this->admin_slug,
             'firstName' => $this->first_name,
@@ -55,7 +57,7 @@ class Admin extends Actor
             'email' => $this->email,
             'phoneNumber' => $this->phone_number,
             'status' => $this->status,
-            'profileImage' => $this->profile_image,
+            'profileImage' => static::normalizePublicUrl($this->profile_image),
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,
         ];
@@ -63,7 +65,11 @@ class Admin extends Actor
 
     public function toAuthArray(): array
     {
+        static::persistActorProfileImage($this);
+
         $data = $this->toArray();
+        $data['profile_image'] = static::normalizePublicUrl($this->profile_image);
+        $data['profileImage'] = $data['profile_image'];
         $this->loadMissing('role.permissions');
 
         if ($this->role) {

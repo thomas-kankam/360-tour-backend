@@ -21,7 +21,7 @@ class CompanySetting extends Model
         return [
             'legal_name' => '360 Tours and Investment Limited',
             'tagline' => '',
-            'email' => 'info@360toursghana.com',
+            'email' => '360toursghana@gmail.com',
             'phone' => '',
             'website' => 'https://360toursghana.com',
             'address_line_1' => '',

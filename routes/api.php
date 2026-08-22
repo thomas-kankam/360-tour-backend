@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('listings', [ListingController::class, 'index']);
 Route::get('listings/random', [ListingController::class, 'random']);
+Route::get('listings/regions', [ListingController::class, 'regions']);
 Route::get('listings/{listing}/reviews', [ListingController::class, 'reviews']);
 Route::get('listings/{listing}', [ListingController::class, 'show']);
 Route::post('contacts', [ContactController::class, 'store']);
@@ -46,6 +47,7 @@ Route::prefix('client')->group(function () {
     Route::middleware('auth:client-api')->group(function () {
         Route::post('logout', [ClientAuthenticationController::class, 'logout']);
         Route::post('update-profile', [ClientAuthenticationController::class, 'updateProfile']);
+        Route::post('uploads/images', [AdminUploadController::class, 'storeImage']);
 
         Route::get('bookings', [ClientBookingController::class, 'index']);
         Route::get('bookings/{booking}', [ClientBookingController::class, 'show']);

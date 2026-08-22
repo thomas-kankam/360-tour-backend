@@ -16,7 +16,7 @@ class LandingCmsController extends Controller
         }
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Landing CMS retrieved', [
-            'content' => $record->mergeWithDefaults($record->published_content),
+            'content' => static::normalizeLandingCmsUrls($record->mergeWithDefaults($record->published_content)),
             'published_at' => $record->published_at?->toIso8601String(),
         ]);
     }

@@ -21,7 +21,7 @@ class UpdateProfileRequest extends FormRequest
             'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('clients', 'email')->ignore($clientId)],
             'location' => ['nullable', 'string', 'max:255'],
-            'profile_image' => ['nullable', 'string', 'starts_with:data:,http://,https://'],
+            'profile_image' => ['nullable', 'string'],
         ];
     }
 }

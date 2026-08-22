@@ -15,11 +15,26 @@ class AdminLandingCmsController extends Controller
     public function show(): JsonResponse
     {
         $record = LandingCms::current();
+        $draft = static::persistLandingCmsImages($record->editorDraft());
+        $published = $record->published_content
+            ? static::persistLandingCmsImages($record->mergeWithDefaults($record->published_content))
+            : null;
+
+        $dirty = [];
+        if (($record->draft_content ?? []) !== $draft) {
+            $dirty['draft_content'] = $draft;
+        }
+        if ($published && $published !== $record->published_content) {
+            $dirty['published_content'] = $published;
+        }
+        if ($dirty) {
+            $record->forceFill($dirty)->saveQuietly();
+        }
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Landing CMS retrieved', [
-            'draft' => $record->editorDraft(),
-            'published' => $record->published_content ? $record->mergeWithDefaults($record->published_content) : null,
-            'meta' => $record->meta(),
+            'draft' => static::normalizeLandingCmsUrls($draft),
+            'published' => $published ? static::normalizeLandingCmsUrls($published) : null,
+            'meta' => $record->fresh()->meta(),
         ]);
     }
 
@@ -36,7 +51,7 @@ class AdminLandingCmsController extends Controller
         $record->refresh();
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Landing CMS draft saved', [
-            'draft' => $record->editorDraft(),
+            'draft' => static::normalizeLandingCmsUrls($record->editorDraft()),
             'meta' => $record->meta(),
         ]);
     }
@@ -48,7 +63,9 @@ class AdminLandingCmsController extends Controller
 
         $content = $request->has('content')
             ? $this->validatedContent($request)
-            : ($record->draft_content ?? $record->published_content ?? LandingCms::defaultContent());
+            : static::persistLandingCmsImages($record->mergeWithDefaults(
+                $record->draft_content ?? $record->published_content ?? LandingCms::defaultContent()
+            ));
 
         $content = $record->mergeWithDefaults($content);
 
@@ -63,7 +80,7 @@ class AdminLandingCmsController extends Controller
         $record->refresh();
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Landing CMS published', [
-            'published' => $record->mergeWithDefaults($record->published_content ?? []),
+            'published' => static::normalizeLandingCmsUrls($record->mergeWithDefaults($record->published_content ?? [])),
             'meta' => $record->meta(),
         ]);
     }
@@ -81,7 +98,7 @@ class AdminLandingCmsController extends Controller
         $record->refresh();
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Landing CMS draft reset to defaults', [
-            'draft' => $record->editorDraft(),
+            'draft' => static::normalizeLandingCmsUrls($record->editorDraft()),
             'meta' => $record->meta(),
         ]);
     }
@@ -99,14 +116,7 @@ class AdminLandingCmsController extends Controller
         ]);
 
         $content = LandingCms::current()->mergeWithDefaults($data['content']);
-
-        if (! empty($content['hero']['backgroundImage']) && str_starts_with($content['hero']['backgroundImage'], 'data:')) {
-            $content['hero']['backgroundImage'] = static::base64ImageDecode($content['hero']['backgroundImage']) ?? $content['hero']['backgroundImage'];
-        }
-
-        if (! empty($content['cta']['image']) && str_starts_with($content['cta']['image'], 'data:')) {
-            $content['cta']['image'] = static::base64ImageDecode($content['cta']['image']) ?? $content['cta']['image'];
-        }
+        $content = static::persistLandingCmsImages($content);
 
         return $content;
     }

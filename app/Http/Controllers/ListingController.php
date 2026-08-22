@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Rating;
 use App\Models\Tour;
+use App\Support\GhanaRegions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,12 +15,18 @@ class ListingController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Tour::query()->published();
-        if ($request->filled('featured')) {
-            $query->where('featured', filter_var($request->featured, FILTER_VALIDATE_BOOLEAN));
-        }
 
         if ($request->filled('country')) {
             $query->where('country', 'like', '%' . $request->country . '%');
+        }
+
+        if ($request->filled('region') && GhanaRegions::exists($request->region)) {
+            $query->inRegion((string) $request->region);
+        }
+
+        $tourType = strtolower((string) $request->input('tour_type', $request->input('tourType', '')));
+        if (in_array($tourType, Tour::TYPES, true)) {
+            $query->ofType($tourType);
         }
 
         $priceSort = strtolower((string) $request->input('price_amount', ''));
@@ -36,6 +43,38 @@ class ListingController extends Controller
         $paginator = self::paginateQuery($request, $query);
 
         return self::paginatedApiResponse('Listings retrieved', $paginator, fn(Tour $tour) => $tour->toListingArray());
+    }
+
+    /**
+     * Region facets for the tours browser: every Ghana region that currently has
+     * at least one published tour, with its live count.
+     */
+    public function regions(): JsonResponse
+    {
+        $tours = Tour::query()
+            ->published()
+            ->select(['locations', 'regions'])
+            ->get();
+
+        $counts = [];
+        foreach ($tours as $tour) {
+            $regions = $tour->regions ?: GhanaRegions::resolveFromLocations($tour->locations ?? []);
+            foreach ($regions as $regionId) {
+                $counts[$regionId] = ($counts[$regionId] ?? 0) + 1;
+            }
+        }
+
+        $facets = [];
+        foreach (GhanaRegions::REGIONS as $id => $label) {
+            if (($counts[$id] ?? 0) > 0) {
+                $facets[] = ['id' => $id, 'label' => $label, 'count' => $counts[$id]];
+            }
+        }
+
+        return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Regions retrieved', [
+            'total' => $tours->count(),
+            'regions' => $facets,
+        ]);
     }
 
     public function random(): JsonResponse

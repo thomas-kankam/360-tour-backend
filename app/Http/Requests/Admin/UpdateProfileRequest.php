@@ -20,7 +20,7 @@ class UpdateProfileRequest extends FormRequest
             'first_name' => ['sometimes', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('admins', 'email')->ignore($adminId)],
-            'profile_image' => ['nullable', 'string', 'starts_with:data:,http://,https://'],
+            'profile_image' => ['nullable', 'string'],
         ];
     }
 }

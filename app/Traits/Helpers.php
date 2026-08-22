@@ -36,44 +36,43 @@ trait Helpers
         return $actor->createToken($oauth_name)->accessToken;
     }
 
-    protected static function base64ImageDecode(?string $base64_image): ?string
+    protected static function base64ImageDecode(?string $base64_image, string $variant = 'generic'): ?string
     {
-        if (! $base64_image) {
+        $binary = static::decodeDataUrlBinary($base64_image);
+
+        if ($binary === null) {
             return null;
         }
 
-        if (! preg_match('/^data:image\/(png|jpg|jpeg|gif|webp);base64,/', $base64_image, $matches)) {
-            return null;
-        }
-
-        $extension  = $matches[1];
-        $image_data = substr($base64_image, strpos($base64_image, ',') + 1);
-
-        $decoded = base64_decode($image_data, true);
-
-        if ($decoded === false) {
-            return null;
-        }
-
-        $fileName = Str::uuid() . '.' . $extension;
-        $filePath = "uploads/images/{$fileName}";
-
-        Storage::disk('public')->put($filePath, $decoded);
-
-        return static::storagePublicUrl($filePath);
+        return static::storeImageBinary($binary['contents'], $binary['extension'], $variant);
     }
 
-    protected static function storeUploadedImage(?UploadedFile $file): ?string
+    protected static function storeUploadedImage(?UploadedFile $file, string $variant = 'generic'): ?string
     {
         if (! $file || ! $file->isValid()) {
             return null;
         }
 
-        $extension = $file->getClientOriginalExtension() ?: $file->extension();
-        $fileName = Str::uuid() . '.' . strtolower($extension);
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg');
+        $contents = $file->get();
+
+        if (! is_string($contents) || $contents === '') {
+            return null;
+        }
+
+        return static::storeImageBinary($contents, $extension, $variant);
+    }
+
+    protected static function storeImageBinary(string $contents, string $extension, string $variant = 'generic'): ?string
+    {
+        $optimized = static::optimizeImageBinary($contents, $extension, $variant);
+        $extension = $optimized['extension'];
+        $contents = $optimized['contents'];
+
+        $fileName = Str::uuid() . '.' . $extension;
         $filePath = "uploads/images/{$fileName}";
 
-        $stored = Storage::disk('public')->put($filePath, $file->get());
+        $stored = Storage::disk('public')->put($filePath, $contents);
 
         if (! $stored) {
             return null;
@@ -82,25 +81,194 @@ trait Helpers
         return static::storagePublicUrl($filePath);
     }
 
+    protected static function decodeDataUrlBinary(?string $dataUrl): ?array
+    {
+        if (! $dataUrl) {
+            return null;
+        }
+
+        $dataUrl = trim($dataUrl);
+
+        if (! preg_match('/^data:image\/([a-zA-Z0-9+.-]+)(;[^,]*)?;base64,/i', $dataUrl, $matches)) {
+            return null;
+        }
+
+        $extension = strtolower($matches[1]);
+        if ($extension === 'jpeg') {
+            $extension = 'jpg';
+        }
+        if ($extension === 'svg+xml') {
+            return null;
+        }
+        if (! in_array($extension, ['png', 'jpg', 'gif', 'webp'], true)) {
+            return null;
+        }
+
+        $imageData = substr($dataUrl, strpos($dataUrl, ',') + 1);
+        $decoded = base64_decode($imageData, true);
+
+        if ($decoded === false || $decoded === '') {
+            return null;
+        }
+
+        return [
+            'contents' => $decoded,
+            'extension' => $extension,
+        ];
+    }
+
+    /**
+     * Crop/scale raster images so they fit the slot they will be shown in.
+     *
+     * @return array{contents: string, extension: string}
+     */
+    protected static function optimizeImageBinary(string $contents, string $extension, string $variant = 'generic'): array
+    {
+        if (! function_exists('imagecreatefromstring')) {
+            return ['contents' => $contents, 'extension' => $extension];
+        }
+
+        $source = @imagecreatefromstring($contents);
+        if ($source === false) {
+            return ['contents' => $contents, 'extension' => $extension];
+        }
+
+        $spec = static::imageVariantSpec($variant);
+        $srcW = imagesx($source);
+        $srcH = imagesy($source);
+
+        if ($srcW < 1 || $srcH < 1) {
+            imagedestroy($source);
+
+            return ['contents' => $contents, 'extension' => $extension];
+        }
+
+        $targetW = $spec['width'];
+        $targetH = $spec['height'];
+        $fit = $spec['fit'];
+
+        if ($fit === 'cover') {
+            $targetRatio = $targetW / $targetH;
+            $srcRatio = $srcW / $srcH;
+
+            if ($srcRatio > $targetRatio) {
+                $cropW = (int) round($srcH * $targetRatio);
+                $cropH = $srcH;
+                $cropX = (int) max(0, round(($srcW - $cropW) / 2));
+                $cropY = 0;
+            } else {
+                $cropW = $srcW;
+                $cropH = (int) round($srcW / $targetRatio);
+                $cropX = 0;
+                $cropY = (int) max(0, round(($srcH - $cropH) / 2));
+            }
+
+            $outW = min($targetW, $cropW);
+            $outH = min($targetH, $cropH);
+        } else {
+            $scale = min($targetW / $srcW, $targetH / $srcH, 1);
+            $cropX = 0;
+            $cropY = 0;
+            $cropW = $srcW;
+            $cropH = $srcH;
+            $outW = max(1, (int) round($srcW * $scale));
+            $outH = max(1, (int) round($srcH * $scale));
+        }
+
+        $dest = imagecreatetruecolor($outW, $outH);
+        imagealphablending($dest, false);
+        imagesavealpha($dest, true);
+        $transparent = imagecolorallocatealpha($dest, 0, 0, 0, 127);
+        imagefilledrectangle($dest, 0, 0, $outW, $outH, $transparent);
+        imagealphablending($dest, true);
+        imagecopyresampled($dest, $source, 0, 0, $cropX, $cropY, $outW, $outH, $cropW, $cropH);
+        imagedestroy($source);
+
+        ob_start();
+        $outputExtension = 'jpg';
+        if (function_exists('imagewebp')) {
+            imagewebp($dest, null, 82);
+            $outputExtension = 'webp';
+        } else {
+            imagejpeg($dest, null, 82);
+        }
+        $optimized = ob_get_clean();
+        imagedestroy($dest);
+
+        if (! is_string($optimized) || $optimized === '') {
+            return ['contents' => $contents, 'extension' => $extension];
+        }
+
+        return ['contents' => $optimized, 'extension' => $outputExtension];
+    }
+
+    protected static function imageVariantSpec(string $variant): array
+    {
+        return match ($variant) {
+            'profile' => ['width' => 512, 'height' => 512, 'fit' => 'cover'],
+            'destination' => ['width' => 1280, 'height' => 800, 'fit' => 'cover'],
+            'tour' => ['width' => 1600, 'height' => 1000, 'fit' => 'cover'],
+            'hero' => ['width' => 1920, 'height' => 1080, 'fit' => 'cover'],
+            'logo' => ['width' => 800, 'height' => 800, 'fit' => 'contain'],
+            default => ['width' => 1600, 'height' => 1000, 'fit' => 'cover'],
+        };
+    }
+
+    protected static function publicAssetBase(): string
+    {
+        $request = request();
+
+        if ($request && $request->getHost()) {
+            $host = $request->getHost();
+            $isLocalHost = in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+                || str_ends_with($host, '.test')
+                || str_ends_with($host, '.local');
+
+            if ($isLocalHost) {
+                return rtrim($request->getSchemeAndHttpHost(), '/');
+            }
+        }
+
+        return rtrim((string) (config('custom.urls.backend_url') ?: config('app.url')), '/');
+    }
+
     protected static function storagePublicUrl(string $filePath): string
     {
-        $base = rtrim((string) config('custom.urls.backend_url'), '/');
+        $filePath = ltrim(str_replace('\\', '/', $filePath), '/');
 
-        return "{$base}/storage/{$filePath}";
+        return static::publicAssetBase() . '/storage/' . $filePath;
     }
 
     protected static function normalizePublicUrl(?string $url): ?string
     {
-        if (! $url || str_starts_with($url, 'data:')) {
-            return $url;
+        if ($url === null) {
+            return null;
+        }
+
+        $url = trim($url);
+        if ($url === '' || str_starts_with($url, 'data:')) {
+            return $url === '' ? null : $url;
+        }
+
+        if (str_starts_with($url, '/storage/')) {
+            return static::publicAssetBase() . $url;
         }
 
         $parts = parse_url($url);
-        if (! isset($parts['scheme'], $parts['host'])) {
+        if (! isset($parts['path'])) {
             return $url;
         }
 
-        $path = preg_replace('#/+#', '/', $parts['path'] ?? '');
+        $path = preg_replace('#/+#', '/', $parts['path'] ?? '') ?: '';
+        if (str_contains($path, '/storage/')) {
+            $relative = ltrim((string) preg_replace('#^.*?/storage/#', '', $path), '/');
+
+            return static::storagePublicUrl($relative);
+        }
+
+        if (! isset($parts['scheme'], $parts['host'])) {
+            return $url;
+        }
 
         $normalized = $parts['scheme'] . '://' . $parts['host'];
         if (isset($parts['port'])) {
@@ -118,17 +286,171 @@ trait Helpers
         return $normalized;
     }
 
-    protected static function decodeImageUrl(?string $url): ?string
+    protected static function decodeImageUrl(?string $url, string $variant = 'generic'): ?string
     {
-        if (! $url) {
+        $candidate = static::extractImageCandidate($url);
+
+        if ($candidate === null || $candidate === '') {
             return null;
         }
 
-        if (str_starts_with($url, 'data:')) {
-            return static::base64ImageDecode($url) ?? $url;
+        if (str_starts_with($candidate, 'data:')) {
+            return static::base64ImageDecode($candidate, $variant);
         }
 
-        return static::normalizePublicUrl($url);
+        return static::normalizePublicUrl($candidate);
+    }
+
+    protected static function extractImageCandidate(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_array($value)) {
+            foreach (['url', 'uri', 'src', 'image', 'data'] as $key) {
+                if (! empty($value[$key]) && is_string($value[$key])) {
+                    $nested = $value[$key];
+                    if ($key === 'data' && isset($value['mimeType']) && ! str_starts_with($nested, 'data:')) {
+                        return 'data:' . $value['mimeType'] . ';base64,' . $nested;
+                    }
+
+                    return static::extractImageCandidate($nested) ?? $nested;
+                }
+            }
+
+            return null;
+        }
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (str_starts_with($trimmed, '{') || str_starts_with($trimmed, '[')) {
+            $decoded = json_decode($trimmed, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return static::extractImageCandidate($decoded);
+            }
+        }
+
+        if (str_starts_with($trimmed, '"') && str_ends_with($trimmed, '"')) {
+            $decoded = json_decode($trimmed, true);
+            if (is_string($decoded)) {
+                return static::extractImageCandidate($decoded);
+            }
+        }
+
+        return $trimmed;
+    }
+
+    protected static function persistStoredImageValue(mixed $value, string $variant = 'generic'): ?string
+    {
+        $candidate = static::extractImageCandidate($value);
+
+        if ($candidate === null || $candidate === '') {
+            return null;
+        }
+
+        if (str_starts_with($candidate, 'data:')) {
+            return static::base64ImageDecode($candidate, $variant);
+        }
+
+        return $candidate;
+    }
+
+    protected static function persistLandingCmsImages(array $content): array
+    {
+        if (! empty($content['hero']['backgroundImage'])) {
+            $content['hero']['backgroundImage'] = static::persistCmsImageValue($content['hero']['backgroundImage'], 'hero');
+        }
+
+        if (! empty($content['cta']['image'])) {
+            $content['cta']['image'] = static::persistCmsImageValue($content['cta']['image'], 'destination');
+        }
+
+        foreach (['destinations', 'regions'] as $section) {
+            if (! isset($content[$section]['items']) || ! is_array($content[$section]['items'])) {
+                continue;
+            }
+
+            foreach ($content[$section]['items'] as $index => $item) {
+                if (! is_array($item) || empty($item['image'])) {
+                    continue;
+                }
+
+                $content[$section]['items'][$index]['image'] = static::persistCmsImageValue($item['image'], 'destination');
+            }
+        }
+
+        return $content;
+    }
+
+    protected static function persistCmsImageValue(mixed $value, string $variant): string
+    {
+        $candidate = static::extractImageCandidate($value) ?? '';
+
+        if ($candidate === '') {
+            return '';
+        }
+
+        if (str_starts_with($candidate, 'data:')) {
+            return static::base64ImageDecode($candidate, $variant) ?? '';
+        }
+
+        return $candidate;
+    }
+
+    protected static function normalizeLandingCmsUrls(array $content): array
+    {
+        if (! empty($content['hero']['backgroundImage'])) {
+            $content['hero']['backgroundImage'] = static::normalizePublicUrl($content['hero']['backgroundImage'])
+                ?? $content['hero']['backgroundImage'];
+        }
+
+        if (! empty($content['cta']['image'])) {
+            $content['cta']['image'] = static::normalizePublicUrl($content['cta']['image'])
+                ?? $content['cta']['image'];
+        }
+
+        foreach (['destinations', 'regions'] as $section) {
+            if (! isset($content[$section]['items']) || ! is_array($content[$section]['items'])) {
+                continue;
+            }
+
+            foreach ($content[$section]['items'] as $index => $item) {
+                if (! is_array($item) || empty($item['image'])) {
+                    continue;
+                }
+
+                $content[$section]['items'][$index]['image'] = static::normalizePublicUrl($item['image'])
+                    ?? $item['image'];
+            }
+        }
+
+        return $content;
+    }
+
+    protected static function persistActorProfileImage(Actor $actor): void
+    {
+        $raw = $actor->getRawOriginal('profile_image');
+        $candidate = static::extractImageCandidate($raw ?? $actor->profile_image);
+
+        if (! $candidate) {
+            return;
+        }
+
+        if (! str_starts_with($candidate, 'data:') && is_string($raw) && ! str_starts_with(trim($raw), '{') && ! str_starts_with(trim($raw), '[')) {
+            return;
+        }
+
+        $persisted = static::persistStoredImageValue($candidate, 'profile');
+        $actor->forceFill(['profile_image' => $persisted])->saveQuietly();
+        $actor->refresh();
     }
 
     protected static function normalizeItineraryForOutput(array $itinerary): array
@@ -140,7 +462,7 @@ trait Helpers
 
             $imageUrl = $day['imageUrl'] ?? $day['image_url'] ?? null;
             if ($imageUrl) {
-                $day['imageUrl'] = static::normalizePublicUrl($imageUrl);
+                $day['imageUrl'] = static::decodeImageUrl($imageUrl, 'tour');
                 unset($day['image_url']);
             }
 

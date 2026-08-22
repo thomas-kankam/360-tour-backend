@@ -35,4 +35,15 @@ class Client extends Actor
     {
         return "client_slug";
     }
+
+    public function toArray(): array
+    {
+        static::persistActorProfileImage($this);
+
+        $data = parent::toArray();
+        $data['profile_image'] = static::normalizePublicUrl($this->profile_image);
+        $data['profileImage'] = $data['profile_image'];
+
+        return $data;
+    }
 }

@@ -47,8 +47,9 @@ class AdminCompanySettingsController extends Controller
         $record = CompanySetting::current();
         $settings = array_merge($record->mergedSettings(), $data['settings']);
 
-        if (! empty($settings['invoice_logo']) && str_starts_with($settings['invoice_logo'], 'data:')) {
-            $settings['invoice_logo'] = static::base64ImageDecode($settings['invoice_logo']) ?? $settings['invoice_logo'];
+        if (! empty($settings['invoice_logo'])) {
+            $settings['invoice_logo'] = static::persistStoredImageValue($settings['invoice_logo'], 'logo')
+                ?? static::normalizePublicUrl($settings['invoice_logo']);
         }
 
         $record->update(['settings' => $settings]);

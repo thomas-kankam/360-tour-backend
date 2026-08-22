@@ -24,7 +24,7 @@ class ClientAuthenticationController extends Controller
     public function register(ClientRegisterRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $data['profile_image'] = static::base64ImageDecode($data['profile_image'] ?? null);
+        $data['profile_image'] = static::persistStoredImageValue($data['profile_image'] ?? null, 'profile');
 
         $client = Client::create([
             'client_slug' => (string) Str::uuid(),
@@ -83,8 +83,10 @@ class ClientAuthenticationController extends Controller
     {
         $data = collect($request->validated())->except(['phone_number'])->all();
 
-        if (isset($data['profile_image'])) {
-            $data['profile_image'] = static::base64ImageDecode($data['profile_image']) ?? $data['profile_image'];
+        if (array_key_exists('profile_image', $data)) {
+            $data['profile_image'] = $data['profile_image'] === '' || $data['profile_image'] === null
+                ? null
+                : (static::persistStoredImageValue($data['profile_image'], 'profile') ?? static::normalizePublicUrl($data['profile_image']));
         }
 
         return self::updateActorProfile(

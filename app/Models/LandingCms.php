@@ -39,24 +39,39 @@ class LandingCms extends Model
                 'backgroundImage' => '/images/gallery/optimized/hero.webp',
             ],
             'tours' => [
-                'eyebrow' => 'Featured tours',
-                'title' => 'Top picks for your next trip',
+                'eyebrow' => 'Featured journeys',
+                'title' => 'Start with these four',
                 'subtitle' => 'Heritage tours, adventure trails, beach getaways, and city escapes curated for every traveler.',
                 'viewAllLabel' => 'View all tours',
             ],
             'destinations' => [
-                'eyebrow' => 'Popular destinations',
-                'title' => 'Where travelers go next',
-                'subtitle' => 'Swipe through Ghana highlights and find your next adventure.',
+                'eyebrow' => 'Tour Packages',
+                'title' => 'Popular Destinations',
+                'subtitle' => 'Fifteen unforgettable stops across Ghana, from historic castles to rainforest canopy walks.',
                 'ctaLabel' => 'View all tours',
                 'bookLabel' => 'Book this experience',
+                'items' => static::defaultDestinationItems(),
             ],
             'regions' => [
                 'eyebrow' => 'Where We Operate',
                 'title' => 'Discover Ghana, Region by Region',
-                'subtitle' => 'From Accra\'s vibrant streets to Cape Coast\'s historic castles, explore Ghana one region at a time.',
+                'subtitle' => 'From Accra\'s vibrant streets to Cape Coast\'s historic castles, Volta\'s waterfalls, and beyond, we bring every corner of Ghana to life.',
                 'ctaLabel' => 'View all Ghana tours',
                 'footerNote' => 'Ghana is our home base, with curated experiences across Africa.',
+                'items' => static::defaultRegionItems(),
+            ],
+            'gallery' => [
+                'eyebrow' => 'From the road',
+                'title' => 'Places we have already taken travellers',
+                'subtitle' => 'Real stops from real departures — castles on the coast, waterfalls in the Volta hills, palaces in Kumasi, and savanna at sunrise.',
+                'ctaLabel' => 'Browse tours by region',
+            ],
+            'testimonials' => [
+                'eyebrow' => 'Traveler stories',
+                'title' => 'Real journeys, real memories',
+                'subtitle' => 'Universities, families, and groups share what it felt like to explore Ghana with 360 Tours and Investment Limited.',
+                'rating' => '4.9',
+                'reviews' => '120+ reviews',
             ],
             'explore' => [
                 'eyebrow' => 'Learn more',
@@ -80,6 +95,39 @@ class LandingCms extends Model
                 'whatsappMessage' => 'Hi, I\'d like to plan a trip with 360 Tours.',
                 'image' => '/images/home/hero_two.jpg',
             ],
+        ];
+    }
+
+    public static function defaultDestinationItems(): array
+    {
+        return [
+            ['id' => 'accra-city-tour', 'name' => 'Accra City Tour', 'region' => 'Greater Accra', 'image' => '/images/home/arts_and_craft.jpg', 'imageKey' => 'accraCityTour'],
+            ['id' => 'cape-coast-castle', 'name' => 'Cape Coast Castle', 'region' => 'Central Region', 'image' => '/images/home/ghana_tour.png', 'imageKey' => 'capeCoastCastle'],
+            ['id' => 'elmina-castle', 'name' => 'Elmina Castle', 'region' => 'Central Region', 'image' => '/images/home/hero_three.jpg', 'imageKey' => 'elminaCastle'],
+            ['id' => 'kakum-national-park', 'name' => 'Kakum National Park', 'region' => 'Central Region', 'image' => '/images/home/dest-ghana.jpg', 'imageKey' => 'kakumNationalPark'],
+            ['id' => 'akosombo-boat-cruise', 'name' => 'Akosombo Boat Cruise', 'region' => 'Eastern Region', 'image' => '/images/home/waterfall.jpg', 'imageKey' => 'akosomboBoatCruise'],
+            ['id' => 'aburi-botanical-gardens', 'name' => 'Aburi Botanical Gardens', 'region' => 'Eastern Region', 'image' => '/images/home/hero_one.jpg', 'imageKey' => 'aburiBotanicalGardens'],
+            ['id' => 'wli-waterfalls', 'name' => 'Wli Waterfalls', 'region' => 'Volta Region', 'image' => '/images/home/volta.jpg', 'imageKey' => 'wliWaterfalls'],
+            ['id' => 'boti-falls', 'name' => 'Boti Falls', 'region' => 'Eastern Region', 'image' => '/images/home/waterfall.jpg', 'imageKey' => 'botiFalls'],
+            ['id' => 'shai-hills', 'name' => 'Shai Hills Resource Reserve', 'region' => 'Greater Accra', 'image' => '/images/home/hero_four.png', 'imageKey' => 'shaiHills'],
+            ['id' => 'ada-foah', 'name' => 'Ada Foah', 'region' => 'Greater Accra', 'image' => '/images/home/hero_two.jpg', 'imageKey' => 'adaFoah'],
+            ['id' => 'nzulezu-stilt-village', 'name' => 'Nzulezu Stilt Village', 'region' => 'Western Region', 'image' => '/images/home/dest-ghana.jpg', 'imageKey' => 'nzulezuStiltVillage'],
+            ['id' => 'mole-national-park', 'name' => 'Mole National Park', 'region' => 'Northern Region', 'image' => '/images/home/dest-ghana.jpg', 'imageKey' => 'moleNationalPark'],
+            ['id' => 'kumasi-cultural-tour', 'name' => 'Kumasi Cultural Tour', 'region' => 'Ashanti Region', 'image' => '/images/home/manhyia_palace.jpg', 'imageKey' => 'kumasiCulturalTour'],
+            ['id' => 'volta-region-adventure', 'name' => 'Volta Region Adventure', 'region' => 'Volta Region', 'image' => '/images/home/volta.jpg', 'imageKey' => 'voltaRegionAdventure'],
+            ['id' => 'tafi-atome-monkey-sanctuary', 'name' => 'Tafi Atome Monkey Sanctuary', 'region' => 'Volta Region', 'image' => '/images/home/hero.jpg', 'imageKey' => 'tafiAtomeMonkeySanctuary'],
+        ];
+    }
+
+    public static function defaultRegionItems(): array
+    {
+        return [
+            ['id' => 'accra', 'name' => 'Accra', 'region' => 'Greater Accra', 'tagline' => 'Capital culture & city life', 'desc' => 'Explore Independence Square, W.E.B. Du Bois Centre, bustling markets, and the creative energy of Ghana\'s capital.', 'highlights' => 'City tours, Arts & crafts, Nightlife', 'image' => '/images/home/arts_and_craft.jpg', 'imageKey' => 'accraCityTour', 'packageId' => 'accra'],
+            ['id' => 'cape-coast', 'name' => 'Cape Coast', 'region' => 'Central Region', 'tagline' => 'Heritage & history', 'desc' => 'Walk through Cape Coast Castle, Elmina Castle, and UNESCO World Heritage sites that tell Ghana\'s powerful story.', 'highlights' => 'Slave castles, Museums, Coastal tours', 'image' => '/images/home/ghana_tour.png', 'imageKey' => 'capeCoastCastle', 'packageId' => ''],
+            ['id' => 'kumasi', 'name' => 'Kumasi', 'region' => 'Ashanti Region', 'tagline' => 'Royal Ashanti heritage', 'desc' => 'Visit Manhyia Palace, kente weaving villages, and the living traditions of the Ashanti Kingdom.', 'highlights' => 'Palace tours, Kente villages, Cultural immersion', 'image' => '/images/home/manhyia_palace.jpg', 'imageKey' => 'kumasiCulturalTour', 'packageId' => 'kumasi'],
+            ['id' => 'volta', 'name' => 'Volta Region', 'region' => 'Eastern Volta', 'tagline' => 'Waterfalls & adventure', 'desc' => 'Trek to Wli Falls, explore Boti Falls, canopy walks, and the lush highlands of eastern Ghana.', 'highlights' => 'Wli Falls, Eco tours, Hiking', 'image' => '/images/home/volta.jpg', 'imageKey' => 'wliWaterfalls', 'packageId' => 'volta'],
+            ['id' => 'akosombo', 'name' => 'Akosombo', 'region' => 'Eastern Region', 'tagline' => 'River cruises & scenery', 'desc' => 'Enjoy scenic boat cruises on the Volta River, mountain views, and relaxing resort experiences.', 'highlights' => 'Boat cruises, Lake views, Resort stays', 'image' => '/images/home/waterfall.jpg', 'imageKey' => 'akosomboBoatCruise', 'packageId' => ''],
+            ['id' => 'northern', 'name' => 'Northern Ghana', 'region' => 'Savanna Zone', 'tagline' => 'Wildlife & nature', 'desc' => 'Discover Mole National Park, savanna landscapes, and unforgettable wildlife adventures in northern Ghana.', 'highlights' => 'Safari, Wildlife, Nature parks', 'image' => '/images/home/dest-ghana.jpg', 'imageKey' => 'moleNationalPark', 'packageId' => ''],
         ];
     }
 
@@ -107,10 +155,50 @@ class LandingCms extends Model
         $merged = [];
 
         foreach ($defaults as $section => $fields) {
-            $merged[$section] = array_merge($fields, $content[$section] ?? []);
+            $sectionContent = $content[$section] ?? [];
+            $merged[$section] = array_merge($fields, is_array($sectionContent) ? $sectionContent : []);
+
+            if (isset($fields['items']) && is_array($fields['items'])) {
+                $merged[$section]['items'] = static::mergeItems(
+                    $fields['items'],
+                    is_array($sectionContent['items'] ?? null) ? $sectionContent['items'] : null
+                );
+            }
         }
 
         return $merged;
+    }
+
+    protected static function mergeItems(array $defaults, ?array $overrides): array
+    {
+        if (! is_array($overrides) || $overrides === []) {
+            return $defaults;
+        }
+
+        $byId = [];
+        foreach ($defaults as $item) {
+            if (! empty($item['id'])) {
+                $byId[$item['id']] = $item;
+            }
+        }
+
+        $order = [];
+        foreach ($overrides as $item) {
+            if (! is_array($item) || empty($item['id'])) {
+                continue;
+            }
+
+            $byId[$item['id']] = array_merge($byId[$item['id']] ?? [], $item);
+            $order[] = $item['id'];
+        }
+
+        foreach ($defaults as $item) {
+            if (! empty($item['id']) && ! in_array($item['id'], $order, true)) {
+                $order[] = $item['id'];
+            }
+        }
+
+        return array_values(array_filter(array_map(fn ($id) => $byId[$id] ?? null, $order)));
     }
 
     public function hasUnpublishedChanges(): bool

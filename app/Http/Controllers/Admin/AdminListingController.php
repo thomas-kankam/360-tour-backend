@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tour;
+use App\Support\GhanaRegions;
 use App\Traits\ListingMapper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,24 @@ class AdminListingController extends Controller
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+
+        $tourType = strtolower((string) $request->input('tour_type', $request->input('tourType', '')));
+        if (in_array($tourType, Tour::TYPES, true)) {
+            $query->ofType($tourType);
+        }
+
+        if ($request->filled('region') && GhanaRegions::exists($request->region)) {
+            $query->inRegion((string) $request->region);
+        }
+
+        if ($request->filled('search')) {
+            $term = '%' . $request->search . '%';
+            $query->where(function ($inner) use ($term) {
+                $inner->where('name', 'like', $term)
+                    ->orWhere('country', 'like', $term)
+                    ->orWhere('locations', 'like', $term);
+            });
         }
 
         $paginator = self::paginateQuery($request, $query->latest());
@@ -42,7 +61,8 @@ class AdminListingController extends Controller
             'country_code' => 'nullable|string|max:255',
             'countryCode' => 'nullable|string|max:255',
             'categories' => 'nullable|array',
-            'featured' => 'nullable|boolean',
+            'tourType' => 'nullable|in:regular,custom',
+            'tour_type' => 'nullable|in:regular,custom',
             'duration_days' => 'nullable|integer',
             'durationDays' => 'nullable|integer',
             'duration_label' => 'nullable|string|max:255',
@@ -59,9 +79,6 @@ class AdminListingController extends Controller
             'priceCurrency' => 'nullable|string|max:255',
             'price_label' => 'nullable|string|max:255',
             'priceLabel' => 'nullable|string|max:255',
-            'badge' => 'nullable|string|max:255',
-            'badge_variant' => 'nullable|string|max:255',
-            'badgeVariant' => 'nullable|string|max:255',
             'cover_image_url' => 'nullable|string',
             'coverImageUrl' => 'nullable|string',
             'gallery_image_urls' => 'nullable|array',

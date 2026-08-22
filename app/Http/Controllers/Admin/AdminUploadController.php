@@ -12,9 +12,10 @@ class AdminUploadController extends Controller
     {
         $request->validate([
             'image' => 'required|file|image|mimes:jpeg,jpg,png,gif,webp|max:10240',
+            'variant' => 'nullable|in:profile,destination,tour,hero,logo,generic',
         ]);
 
-        $url = static::storeUploadedImage($request->file('image'));
+        $url = static::storeUploadedImage($request->file('image'), $request->input('variant', 'generic'));
 
         if (! $url) {
             return self::apiResponse(true, 'Upload Failed', '400', 'Could not store image', []);

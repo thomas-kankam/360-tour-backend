@@ -61,8 +61,10 @@ class AdminAuthenticationController extends Controller
     {
         $data = collect($request->validated())->except(['phone_number'])->all();
 
-        if (isset($data['profile_image'])) {
-            $data['profile_image'] = static::base64ImageDecode($data['profile_image']) ?? $data['profile_image'];
+        if (array_key_exists('profile_image', $data)) {
+            $data['profile_image'] = $data['profile_image'] === '' || $data['profile_image'] === null
+                ? null
+                : (static::persistStoredImageValue($data['profile_image'], 'profile') ?? static::normalizePublicUrl($data['profile_image']));
         }
 
         return self::updateActorProfile(

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\GhanaRegions;
 use App\Traits\Helpers;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,8 +22,9 @@ class Tour extends Model
         'country',
         'country_code',
         'categories',
+        'tour_type',
+        'regions',
         'status',
-        'featured',
         'duration_days',
         'duration_label',
         'group_size_min',
@@ -31,8 +33,6 @@ class Tour extends Model
         'price_amount',
         'price_currency',
         'price_label',
-        'badge',
-        'badge_variant',
         'cover_image_url',
         'gallery_image_urls',
         'description',
@@ -49,9 +49,15 @@ class Tour extends Model
         'review_count',
     ];
 
+    public const TYPE_REGULAR = 'regular';
+
+    public const TYPE_CUSTOM = 'custom';
+
+    public const TYPES = [self::TYPE_REGULAR, self::TYPE_CUSTOM];
+
     protected $casts = [
         'categories' => 'array',
-        'featured' => 'boolean',
+        'regions' => 'array',
         'gallery_image_urls' => 'array',
         'highlights' => 'array',
         'itinerary' => 'array',
@@ -103,8 +109,48 @@ class Tour extends Model
         return $query->where('status', 'published');
     }
 
+    public function scopeOfType(Builder $query, string $type): Builder
+    {
+        return $query->where('tour_type', $type);
+    }
+
+    /**
+     * Filters to tours that visit a Ghana region. Falls back to matching the
+     * region label inside `locations` so tours saved before the `regions`
+     * column existed still show up.
+     */
+    public function scopeInRegion(Builder $query, string $regionId): Builder
+    {
+        $label = GhanaRegions::label($regionId);
+
+        return $query->where(function (Builder $inner) use ($regionId, $label) {
+            $inner->whereJsonContains('regions', $regionId);
+
+            if ($label !== '') {
+                $inner->orWhere('locations', 'like', '%' . $label . '%');
+            }
+        });
+    }
+
+    public function isCustom(): bool
+    {
+        return $this->tour_type === self::TYPE_CUSTOM;
+    }
+
+    /** Keeps `regions` in step with whatever locations were saved. */
+    public function syncRegionsFromLocations(): void
+    {
+        $regions = GhanaRegions::resolveFromLocations($this->locations ?? []);
+
+        if ($regions !== ($this->regions ?? [])) {
+            $this->regions = $regions;
+        }
+    }
+
     public function toListingArray(): array
     {
+        $this->persistInlineImages();
+
         $data = [
             'slug' => $this->tour_slug,
             'name' => $this->name,
@@ -112,8 +158,13 @@ class Tour extends Model
             'country' => $this->country,
             'countryCode' => $this->country_code,
             'categories' => $this->categories ?? [],
+            'tourType' => $this->tour_type ?: self::TYPE_REGULAR,
+            'regions' => $this->regions ?? GhanaRegions::resolveFromLocations($this->locations ?? []),
+            'regionLabels' => array_values(array_filter(array_map(
+                fn ($regionId) => GhanaRegions::label($regionId),
+                $this->regions ?? GhanaRegions::resolveFromLocations($this->locations ?? [])
+            ))),
             'status' => $this->status,
-            'featured' => $this->featured,
             'durationDays' => $this->duration_days,
             'durationLabel' => $this->duration_label,
             'groupSizeMin' => $this->group_size_min,
@@ -122,8 +173,6 @@ class Tour extends Model
             'priceAmount' => (float) $this->price_amount,
             'priceCurrency' => $this->price_currency,
             'priceLabel' => $this->price_label,
-            'badge' => $this->badge,
-            'badgeVariant' => $this->badge_variant,
             'coverImageUrl' => static::normalizePublicUrl($this->cover_image_url),
             'galleryImageUrls' => array_values(array_filter(array_map(
                 fn ($url) => static::normalizePublicUrl($url),
@@ -149,5 +198,69 @@ class Tour extends Model
         }
 
         return $data;
+    }
+
+    protected function persistInlineImages(): void
+    {
+        $dirty = false;
+
+        $cover = static::persistStoredImageValue($this->cover_image_url, 'tour');
+        if ($cover !== $this->cover_image_url && ($cover || str_starts_with((string) $this->cover_image_url, 'data:'))) {
+            $this->cover_image_url = $cover;
+            $dirty = true;
+        }
+
+        $gallery = $this->gallery_image_urls ?? [];
+        $nextGallery = [];
+        $galleryChanged = false;
+        foreach ($gallery as $url) {
+            $persisted = static::persistStoredImageValue($url, 'tour');
+            if ($persisted !== $url) {
+                $galleryChanged = true;
+            }
+            if ($persisted) {
+                $nextGallery[] = $persisted;
+            } elseif (! str_starts_with((string) $url, 'data:')) {
+                $nextGallery[] = $url;
+                $galleryChanged = true;
+            } else {
+                $galleryChanged = true;
+            }
+        }
+        if ($galleryChanged) {
+            $this->gallery_image_urls = array_values($nextGallery);
+            $dirty = true;
+        }
+
+        $itinerary = $this->itinerary ?? [];
+        $itineraryChanged = false;
+        $nextItinerary = array_map(function ($day) use (&$itineraryChanged) {
+            if (! is_array($day)) {
+                return $day;
+            }
+
+            $imageUrl = $day['imageUrl'] ?? $day['image_url'] ?? null;
+            if (! $imageUrl) {
+                return $day;
+            }
+
+            $persisted = static::persistStoredImageValue($imageUrl, 'tour');
+            if ($persisted !== $imageUrl) {
+                $itineraryChanged = true;
+                $day['imageUrl'] = $persisted;
+                unset($day['image_url']);
+            }
+
+            return $day;
+        }, $itinerary);
+
+        if ($itineraryChanged) {
+            $this->itinerary = $nextItinerary;
+            $dirty = true;
+        }
+
+        if ($dirty) {
+            $this->saveQuietly();
+        }
     }
 }

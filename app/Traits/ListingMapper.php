@@ -3,35 +3,48 @@
 namespace App\Traits;
 
 use App\Models\Tour;
+use App\Support\GhanaRegions;
 use Illuminate\Support\Str;
 
 trait ListingMapper
 {
     use Helpers;
 
+    /** Anything we do not recognise falls back to a regular scheduled tour. */
+    protected static function normalizeTourType(?string $type): string
+    {
+        $normalized = strtolower(trim((string) $type));
+
+        return in_array($normalized, Tour::TYPES, true) ? $normalized : Tour::TYPE_REGULAR;
+    }
+
     protected static function mapListingPayloadToAttributes(array $data, ?string $adminSlug = null): array
     {
         $status = $data['status'] ?? 'draft';
         $cover = $data['coverImageUrl'] ?? $data['cover_image_url'] ?? null;
-        $cover = static::decodeImageUrl($cover);
+        $cover = static::decodeImageUrl($cover, 'tour');
 
         $gallery = $data['galleryImageUrls'] ?? $data['gallery_image_urls'] ?? [];
         $gallery = array_values(array_filter(array_map(
-            fn ($url) => static::decodeImageUrl($url),
+            fn ($url) => static::decodeImageUrl($url, 'tour'),
             $gallery
         )));
 
         $itinerary = static::mapItineraryImages($data['itinerary'] ?? []);
 
+        $locations = $data['locations'] ?? [];
+        $tourType = static::normalizeTourType($data['tourType'] ?? $data['tour_type'] ?? null);
+
         return array_filter([
             'tour_slug' => $data['slug'] ?? $data['tour_slug'] ?? (string) Str::uuid(),
             'name' => $data['name'],
-            'locations' => $data['locations'] ?? $data['locations'] ?? [],
+            'locations' => $locations,
             'country' => $data['country'] ?? null,
             'country_code' => $data['countryCode'] ?? $data['country_code'] ?? null,
             'categories' => $data['categories'] ?? [],
+            'tour_type' => $tourType,
+            'regions' => GhanaRegions::resolveFromLocations(is_array($locations) ? $locations : []),
             'status' => $status,
-            'featured' => (bool) ($data['featured'] ?? false),
             'duration_days' => $data['durationDays'] ?? $data['duration_days'] ?? null,
             'duration_label' => $data['durationLabel'] ?? $data['duration_label'] ?? null,
             'group_size_min' => $data['groupSizeMin'] ?? $data['group_size_min'] ?? null,
@@ -40,8 +53,6 @@ trait ListingMapper
             'price_amount' => $data['priceAmount'] ?? $data['price_amount'] ?? 0,
             'price_currency' => $data['priceCurrency'] ?? $data['price_currency'] ?? 'USD',
             'price_label' => $data['priceLabel'] ?? $data['price_label'] ?? null,
-            'badge' => $data['badge'] ?? null,
-            'badge_variant' => $data['badgeVariant'] ?? $data['badge_variant'] ?? null,
             'cover_image_url' => $cover,
             'gallery_image_urls' => $gallery,
             'description' => $data['description'] ?? null,
@@ -75,7 +86,7 @@ trait ListingMapper
 
             $imageUrl = $day['imageUrl'] ?? $day['image_url'] ?? null;
             if ($imageUrl) {
-                $day['imageUrl'] = static::decodeImageUrl($imageUrl);
+                $day['imageUrl'] = static::decodeImageUrl($imageUrl, 'tour');
                 unset($day['image_url']);
             }
 
