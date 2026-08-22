@@ -65,6 +65,7 @@ class LandingCms extends Model
                 'title' => 'Places we have already taken travellers',
                 'subtitle' => 'Real stops from real departures — castles on the coast, waterfalls in the Volta hills, palaces in Kumasi, and savanna at sunrise.',
                 'ctaLabel' => 'Browse tours by region',
+                'items' => static::defaultGalleryItems(),
             ],
             'testimonials' => [
                 'eyebrow' => 'Traveler stories',
@@ -72,6 +73,7 @@ class LandingCms extends Model
                 'subtitle' => 'Universities, families, and groups share what it felt like to explore Ghana with 360 Tours and Investment Limited.',
                 'rating' => '4.9',
                 'reviews' => '120+ reviews',
+                'items' => static::defaultTestimonialItems(),
             ],
             'explore' => [
                 'eyebrow' => 'Learn more',
@@ -84,6 +86,7 @@ class LandingCms extends Model
                 'whyCta' => 'See why travelers trust us',
                 'contactLabel' => 'Plan your trip',
                 'contactText' => 'Custom quotes, group travel, and visa on arrival guidance.',
+                'contactEmail' => '360toursghana@gmail.com',
                 'contactCta' => 'Contact us',
             ],
             'cta' => [
@@ -128,6 +131,29 @@ class LandingCms extends Model
             ['id' => 'volta', 'name' => 'Volta Region', 'region' => 'Eastern Volta', 'tagline' => 'Waterfalls & adventure', 'desc' => 'Trek to Wli Falls, explore Boti Falls, canopy walks, and the lush highlands of eastern Ghana.', 'highlights' => 'Wli Falls, Eco tours, Hiking', 'image' => '/images/home/volta.jpg', 'imageKey' => 'wliWaterfalls', 'packageId' => 'volta'],
             ['id' => 'akosombo', 'name' => 'Akosombo', 'region' => 'Eastern Region', 'tagline' => 'River cruises & scenery', 'desc' => 'Enjoy scenic boat cruises on the Volta River, mountain views, and relaxing resort experiences.', 'highlights' => 'Boat cruises, Lake views, Resort stays', 'image' => '/images/home/waterfall.jpg', 'imageKey' => 'akosomboBoatCruise', 'packageId' => ''],
             ['id' => 'northern', 'name' => 'Northern Ghana', 'region' => 'Savanna Zone', 'tagline' => 'Wildlife & nature', 'desc' => 'Discover Mole National Park, savanna landscapes, and unforgettable wildlife adventures in northern Ghana.', 'highlights' => 'Safari, Wildlife, Nature parks', 'image' => '/images/home/dest-ghana.jpg', 'imageKey' => 'moleNationalPark', 'packageId' => ''],
+        ];
+    }
+
+    public static function defaultGalleryItems(): array
+    {
+        return [
+            ['id' => 'cape-coast-castle', 'slug' => 'cape-coast-castle', 'caption' => 'Cape Coast Castle', 'region' => 'Central', 'image' => '/images/gallery/optimized/cape-coast-castle.webp'],
+            ['id' => 'wli-waterfalls', 'slug' => 'wli-waterfalls', 'caption' => 'Wli Waterfalls', 'region' => 'Volta', 'image' => '/images/gallery/optimized/wli-waterfalls.webp'],
+            ['id' => 'kumasi-cultural-tour', 'slug' => 'kumasi-cultural-tour', 'caption' => 'Manhyia & Kejetia, Kumasi', 'region' => 'Ashanti', 'image' => '/images/gallery/optimized/kumasi-cultural-tour.webp'],
+            ['id' => 'kakum-national-park', 'slug' => 'kakum-national-park', 'caption' => 'Kakum Canopy Walk', 'region' => 'Central', 'image' => '/images/gallery/optimized/kakum-national-park.webp'],
+            ['id' => 'accra-city-tour', 'slug' => 'accra-city-tour', 'caption' => 'Accra City Tour', 'region' => 'Greater Accra', 'image' => '/images/gallery/optimized/accra-city-tour.webp'],
+            ['id' => 'nzulezu-stilt-village', 'slug' => 'nzulezu-stilt-village', 'caption' => 'Nzulezu Stilt Village', 'region' => 'Western', 'image' => '/images/gallery/optimized/nzulezu-stilt-village.webp'],
+            ['id' => 'mole-national-park', 'slug' => 'mole-national-park', 'caption' => 'Mole Safari', 'region' => 'Savannah', 'image' => '/images/gallery/optimized/mole-national-park.webp'],
+            ['id' => 'ada-foah', 'slug' => 'ada-foah', 'caption' => 'Ada Foah Estuary', 'region' => 'Greater Accra', 'image' => '/images/gallery/optimized/ada-foah.webp'],
+        ];
+    }
+
+    public static function defaultTestimonialItems(): array
+    {
+        return [
+            ['id' => 'heritage-guest', 'quote' => 'Our trip to Ghana exceeded every expectation. The guides were knowledgeable, the itinerary was perfectly paced, and every detail was handled.', 'name' => 'Happy Traveler', 'role' => 'Ghana heritage tour guest', 'rating' => '5.0', 'tour' => 'Ghana Heritage', 'initials' => 'HT', 'imageKey' => 'capeCoastCastle', 'image' => '/images/home/ghana_tour.png'],
+            ['id' => 'group-leader', 'quote' => '360 Tours made our university group trip seamless. From airport pickup to the final farewell dinner, everything ran on time.', 'name' => 'University Group Leader', 'role' => 'Educational tour organizer', 'rating' => '5.0', 'tour' => 'Group Heritage Tour', 'initials' => 'UG', 'imageKey' => 'kumasiCulturalTour', 'image' => '/images/home/manhyia_palace.jpg'],
+            ['id' => 'returning-client', 'quote' => 'The Akosombo boat cruise and Cape Coast experience were unforgettable. We\'ll definitely book again.', 'name' => 'Returning Client', 'role' => 'Adventure tour guest', 'rating' => '5.0', 'tour' => 'Akosombo & Cape Coast', 'initials' => 'RC', 'imageKey' => 'akosomboBoatCruise', 'image' => '/images/home/waterfall.jpg'],
         ];
     }
 

@@ -29,7 +29,7 @@ class ListingController extends Controller
             $query->ofType($tourType);
         }
 
-        $priceSort = strtolower((string) $request->input('price_amount', ''));
+        $priceSort = strtolower((string) $request->input('price_amount', $request->input('sort_by_price', '')));
         $dateSort = strtolower((string) $request->input('sort_by', ''));
 
         if (in_array($priceSort, ['asc', 'desc'], true)) {

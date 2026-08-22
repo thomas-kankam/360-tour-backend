@@ -111,6 +111,8 @@ class AdminLandingCmsController extends Controller
             'content.tours' => 'required|array',
             'content.destinations' => 'required|array',
             'content.regions' => 'required|array',
+            'content.gallery' => 'required|array',
+            'content.testimonials' => 'required|array',
             'content.explore' => 'required|array',
             'content.cta' => 'required|array',
         ]);

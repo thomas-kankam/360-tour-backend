@@ -54,6 +54,17 @@ class CompanySetting extends Model
 
     public function mergedSettings(): array
     {
-        return array_merge(static::defaultSettings(), $this->settings ?? []);
+        $settings = array_merge(static::defaultSettings(), $this->settings ?? []);
+        $legacyEmails = [
+            '360tours.gh@gmail.com',
+            'info@360toursghana.com',
+            'accounts@360toursghana.com',
+        ];
+
+        if (in_array(strtolower((string) ($settings['email'] ?? '')), $legacyEmails, true)) {
+            $settings['email'] = static::defaultSettings()['email'];
+        }
+
+        return $settings;
     }
 }
