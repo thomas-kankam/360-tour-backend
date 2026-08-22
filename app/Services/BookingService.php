@@ -23,8 +23,19 @@ class BookingService
         $payload = $this->normalizePayloadForBookingType($payload, $bookingType);
         $travelers = (int) ($payload['travelers'] ?? 1);
         $paymentMode = $payload['paymentMode'] ?? $payload['payment_mode'] ?? 'onsite';
-        $amount = $this->calculateAmount($tour, $travelers);
         $providedAmount = $payload['amount'] ?? null;
+        $currency = $payload['currency'] ?? $payload['payment_currency'] ?? null;
+
+        if ($bookedByType === 'client' && $tour->status !== 'published') {
+            throw new \RuntimeException('This tour is not available for booking.');
+        }
+
+        $amount = $this->calculateAmount(
+            $tour,
+            $travelers,
+            $providedAmount !== null ? (float) $providedAmount : null,
+            $currency,
+        );
 
         if ($providedAmount !== null && round((float) $providedAmount, 2) !== $amount) {
             throw new BookingAmountMismatchException();
@@ -42,7 +53,7 @@ class BookingService
             'payment_mode' => $paymentMode,
             'payment_status' => $paymentMode === 'online' ? 'pending' : 'onsite',
             'amount' => $amount,
-            'currency' => $tour->price_currency,
+            'currency' => strtoupper((string) ($currency ?: $tour->price_currency ?: 'GHS')),
             'lead_traveler' => $payload['leadTraveler'] ?? $payload['lead_traveler'] ?? [],
             'group_details' => $payload['groupDetails'] ?? $payload['group_details'] ?? null,
             'special_requests' => $payload['specialRequests'] ?? $payload['special_requests'] ?? null,
@@ -427,12 +438,37 @@ class BookingService
         return $payload;
     }
 
-    protected function calculateAmount(Tour $tour, int $travelers): float
+    protected function calculateAmount(Tour $tour, int $travelers, ?float $providedAmount = null, ?string $currency = null): float
     {
-        $base = (float) $tour->price_amount * $travelers;
-        // $settings = $tour->booking_settings ?? [];
-        // $depositPercent = (int) ($settings['depositPercent'] ?? 100);
+        $currency = strtoupper(trim((string) ($currency ?: $tour->price_currency ?: 'GHS')));
+        $unitPrice = $this->resolveTourUnitPrice($tour, $currency);
+        $base = round($unitPrice * $travelers, 2);
+        $settings = $tour->booking_settings ?? [];
+        $depositPercent = max(1, min(100, (int) ($settings['depositPercent'] ?? 100)));
+        $depositAmount = round($base * ($depositPercent / 100), 2);
 
-        return round($base, 2);
+        if ($providedAmount !== null) {
+            $provided = round((float) $providedAmount, 2);
+            if ($provided === $base || $provided === $depositAmount) {
+                return $provided;
+            }
+        }
+
+        return $base;
+    }
+
+    protected function resolveTourUnitPrice(Tour $tour, ?string $currency = null): float
+    {
+        $currency = strtoupper(trim((string) ($currency ?: $tour->price_currency ?: 'GHS')));
+
+        if ($currency === 'USD') {
+            $usd = (float) ($tour->price_amount_usd ?? 0);
+
+            return $usd > 0 ? $usd : (float) $tour->price_amount;
+        }
+
+        $ghs = (float) ($tour->price_amount_ghs ?? 0);
+
+        return $ghs > 0 ? $ghs : (float) $tour->price_amount;
     }
 }

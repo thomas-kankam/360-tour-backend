@@ -29,6 +29,11 @@ class ListingController extends Controller
             $query->ofType($tourType);
         }
 
+        if ($request->filled('departure_date')) {
+            $isoDate = (string) $request->input('departure_date');
+            $query->departingOn($isoDate);
+        }
+
         $priceSort = strtolower((string) $request->input('price_amount', $request->input('sort_by_price', '')));
         $dateSort = strtolower((string) $request->input('sort_by', ''));
 

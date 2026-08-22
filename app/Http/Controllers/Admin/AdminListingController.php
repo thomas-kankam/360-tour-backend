@@ -75,6 +75,10 @@ class AdminListingController extends Controller
             'groupSizeLabel' => 'nullable|string|max:255',
             'price_amount' => 'nullable|numeric',
             'priceAmount' => 'nullable|numeric',
+            'priceAmountGhs' => 'nullable|numeric',
+            'priceAmountUsd' => 'nullable|numeric',
+            'audienceScope' => 'nullable|in:local,foreign,global',
+            'audience_scope' => 'nullable|in:local,foreign,global',
             'price_currency' => 'nullable|string|max:255',
             'priceCurrency' => 'nullable|string|max:255',
             'price_label' => 'nullable|string|max:255',
@@ -98,6 +102,9 @@ class AdminListingController extends Controller
 
         $adminSlug = request()->user()->admin_slug;
         $attrs = self::mapListingPayloadToAttributes($request->all(), $adminSlug);
+        if (! array_key_exists('booking_count', $attrs)) {
+            $attrs['booking_count'] = 0;
+        }
         $listing = Tour::create($attrs);
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_CREATED, 'Listing created', $listing->toListingArray());
@@ -105,11 +112,26 @@ class AdminListingController extends Controller
 
     public function update(Request $request, Tour $listing): JsonResponse
     {
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'status' => 'nullable|in:draft,published,archived,active,inactive,expired,live',
+            'locations' => 'nullable|array',
+            'country' => 'nullable|string|max:255',
+            'tourType' => 'nullable|in:regular,custom',
+            'tour_type' => 'nullable|in:regular,custom',
+            'price_amount' => 'nullable|numeric',
+            'priceAmount' => 'nullable|numeric',
+            'priceAmountGhs' => 'nullable|numeric',
+            'priceAmountUsd' => 'nullable|numeric',
+            'audienceScope' => 'nullable|in:local,foreign,global',
+            'audience_scope' => 'nullable|in:local,foreign,global',
+        ]);
+
         $attrs = self::mapListingPayloadToAttributes(
             $request->all(),
             $listing->admin_slug ?? $listing->created_by_admin_slug ?? request()->user()->admin_slug
         );
-        unset($attrs['tour_slug']);
+        unset($attrs['tour_slug'], $attrs['booking_count']);
         $listing->update($attrs);
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Listing updated', $listing->fresh()->toListingArray());

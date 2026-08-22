@@ -57,6 +57,13 @@ class AdminInvoiceController extends Controller
         return self::apiResponse(false, 'Action Successful', (string) self::API_CREATED, 'Invoice created', $invoice->toInvoiceArray());
     }
 
+    public function generateNumber(): JsonResponse
+    {
+        return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Invoice number generated', [
+            'invoice_number' => $this->invoiceNumberService->generate(),
+        ]);
+    }
+
     public function update(Request $request, Invoice $invoice): JsonResponse
     {
         $data = $this->validatedInvoicePayload($request, partial: true);

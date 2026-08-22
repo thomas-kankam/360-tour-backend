@@ -31,6 +31,9 @@ class Tour extends Model
         'group_size_max',
         'group_size_label',
         'price_amount',
+        'price_amount_ghs',
+        'price_amount_usd',
+        'audience_scope',
         'price_currency',
         'price_label',
         'cover_image_url',
@@ -66,6 +69,8 @@ class Tour extends Model
         'departure_dates' => 'array',
         'booking_settings' => 'array',
         'price_amount' => 'decimal:2',
+        'price_amount_ghs' => 'decimal:2',
+        'price_amount_usd' => 'decimal:2',
         'locations' => 'array',
         'rating' => 'decimal:1',
         'review_count' => 'integer',
@@ -132,6 +137,17 @@ class Tour extends Model
         });
     }
 
+    /** Match tours with a fixed departure or a date-range window on the given day. */
+    public function scopeDepartingOn(Builder $query, string $isoDate): Builder
+    {
+        return $query->where(function (Builder $inner) use ($isoDate) {
+            $inner->where('departure_dates', 'like', '%"date":"' . $isoDate . '"%')
+                ->orWhere('departure_dates', 'like', '%"date": "' . $isoDate . '"%')
+                ->orWhere('departure_dates', 'like', '%"endDate":"' . $isoDate . '"%')
+                ->orWhere('departure_dates', 'like', '%"endDate": "' . $isoDate . '"%');
+        });
+    }
+
     public function isCustom(): bool
     {
         return $this->tour_type === self::TYPE_CUSTOM;
@@ -171,6 +187,9 @@ class Tour extends Model
             'groupSizeMax' => $this->group_size_max,
             'groupSizeLabel' => $this->group_size_label,
             'priceAmount' => (float) $this->price_amount,
+            'priceAmountGhs' => $this->price_amount_ghs !== null ? (float) $this->price_amount_ghs : null,
+            'priceAmountUsd' => $this->price_amount_usd !== null ? (float) $this->price_amount_usd : null,
+            'audienceScope' => $this->audience_scope ?: 'local',
             'priceCurrency' => $this->price_currency,
             'priceLabel' => $this->price_label,
             'coverImageUrl' => static::normalizePublicUrl($this->cover_image_url),

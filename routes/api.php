@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AdminContactController;
 use App\Http\Controllers\Admin\AdminInvoiceController;
 use App\Http\Controllers\Admin\AdminLandingCmsController;
 use App\Http\Controllers\Admin\AdminListingController;
+use App\Http\Controllers\Admin\AdminOperatorController;
 use App\Http\Controllers\Admin\AdminPaymentController;
 use App\Http\Controllers\Admin\AdminPermissionController;
 use App\Http\Controllers\Admin\AdminRatingController;
@@ -36,7 +37,7 @@ Route::get('landing-cms', [LandingCmsController::class, 'show']);
 
 Route::get('payment/callback', [PaymentController::class, 'callback']);
 Route::get('payment/verify', [PaymentController::class, 'verify']);
-Route::get('payment/webhook', [PaymentController::class, 'webhook']);
+Route::match(['get', 'post'], 'payment/webhook', [PaymentController::class, 'webhook']);
 
 Route::prefix('client')->group(function () {
     Route::post('login', [ClientAuthenticationController::class, 'login']);
@@ -89,6 +90,8 @@ Route::prefix('admin')->group(function () {
             Route::put('listings/{listing}', [AdminListingController::class, 'update']);
             Route::patch('listings/{listing}/status', [AdminListingController::class, 'updateStatus']);
             Route::delete('listings/{listing}', [AdminListingController::class, 'destroy']);
+            Route::get('operators', [AdminOperatorController::class, 'index']);
+            Route::get('operators/{operator}', [AdminOperatorController::class, 'show']);
         });
 
         Route::middleware('admin.permission:booking_management')->group(function () {
@@ -130,26 +133,35 @@ Route::prefix('admin')->group(function () {
             Route::delete('contacts/{contact}', [AdminContactController::class, 'destroy']);
         });
 
-        Route::get('payments', [AdminPaymentController::class, 'index']);
-        Route::get('payments/{payment}', [AdminPaymentController::class, 'show']);
-        Route::post('payments', [AdminPaymentController::class, 'store']);
+        Route::middleware('admin.permission:booking_management')->group(function () {
+            Route::get('payments', [AdminPaymentController::class, 'index']);
+            Route::get('payments/{payment}', [AdminPaymentController::class, 'show']);
+            Route::post('payments', [AdminPaymentController::class, 'store']);
+        });
 
-        Route::get('ratings', [AdminRatingController::class, 'index']);
-        Route::patch('ratings/{rating}', [AdminRatingController::class, 'update']);
+        Route::middleware('admin.permission:rating_management')->group(function () {
+            Route::get('ratings', [AdminRatingController::class, 'index']);
+            Route::patch('ratings/{rating}', [AdminRatingController::class, 'update']);
+        });
 
-        Route::get('invoices', [AdminInvoiceController::class, 'index']);
-        Route::post('invoices', [AdminInvoiceController::class, 'store']);
-        Route::get('invoices/{invoice}', [AdminInvoiceController::class, 'show']);
-        Route::put('invoices/{invoice}', [AdminInvoiceController::class, 'update']);
-        Route::delete('invoices/{invoice}', [AdminInvoiceController::class, 'destroy']);
-        Route::post('invoices/{invoice}/send', [AdminInvoiceController::class, 'send']);
+        Route::middleware('admin.permission:invoice_management')->group(function () {
+            Route::get('invoices', [AdminInvoiceController::class, 'index']);
+            Route::post('invoices/generate-number', [AdminInvoiceController::class, 'generateNumber']);
+            Route::post('invoices', [AdminInvoiceController::class, 'store']);
+            Route::get('invoices/{invoice}', [AdminInvoiceController::class, 'show']);
+            Route::put('invoices/{invoice}', [AdminInvoiceController::class, 'update']);
+            Route::delete('invoices/{invoice}', [AdminInvoiceController::class, 'destroy']);
+            Route::post('invoices/{invoice}/send', [AdminInvoiceController::class, 'send']);
+        });
+
+        Route::middleware('admin.permission:cms_management')->group(function () {
+            Route::get('landing-cms', [AdminLandingCmsController::class, 'show']);
+            Route::put('landing-cms', [AdminLandingCmsController::class, 'updateDraft']);
+            Route::post('landing-cms/publish', [AdminLandingCmsController::class, 'publish']);
+            Route::post('landing-cms/reset', [AdminLandingCmsController::class, 'reset']);
+        });
 
         Route::get('company-settings', [AdminCompanySettingsController::class, 'show']);
         Route::post('company-settings', [AdminCompanySettingsController::class, 'store']);
-
-        Route::get('landing-cms', [AdminLandingCmsController::class, 'show']);
-        Route::put('landing-cms', [AdminLandingCmsController::class, 'updateDraft']);
-        Route::post('landing-cms/publish', [AdminLandingCmsController::class, 'publish']);
-        Route::post('landing-cms/reset', [AdminLandingCmsController::class, 'reset']);
     });
 });
