@@ -32,6 +32,7 @@ Route::get('listings/random', [ListingController::class, 'random']);
 Route::get('listings/regions', [ListingController::class, 'regions']);
 Route::get('listings/{listing}/reviews', [ListingController::class, 'reviews']);
 Route::get('listings/{listing}', [ListingController::class, 'show']);
+Route::get('sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index']);
 Route::post('contacts', [ContactController::class, 'store']);
 Route::get('landing-cms', [LandingCmsController::class, 'show']);
 

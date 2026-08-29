@@ -34,6 +34,18 @@ class ListingController extends Controller
             $query->departingOn($isoDate);
         }
 
+        $search = trim((string) $request->input('search', $request->input('q', '')));
+        if ($search !== '') {
+            $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $search) . '%';
+            $query->where(function ($inner) use ($like) {
+                $inner->where('name', 'like', $like)
+                    ->orWhere('description', 'like', $like)
+                    ->orWhere('country', 'like', $like)
+                    ->orWhere('locations', 'like', $like)
+                    ->orWhere('highlights', 'like', $like);
+            });
+        }
+
         $priceSort = strtolower((string) $request->input('price_amount', $request->input('sort_by_price', '')));
         $dateSort = strtolower((string) $request->input('sort_by', ''));
 
