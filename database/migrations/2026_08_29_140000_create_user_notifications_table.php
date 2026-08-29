@@ -20,8 +20,8 @@ return new class extends Migration
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
 
-            $table->index(['recipient_type', 'recipient_slug', 'read_at']);
-            $table->index(['recipient_type', 'recipient_slug', 'created_at']);
+            $table->index(['recipient_type', 'recipient_slug', 'read_at'], 'user_notif_recipient_read_idx');
+            $table->index(['recipient_type', 'recipient_slug', 'created_at'], 'user_notif_recipient_created_idx');
         });
     }
 
