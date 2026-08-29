@@ -5,8 +5,10 @@ use App\Models\Admin;
 use App\Models\Booking;
 use App\Models\Contact;
 use App\Models\Invoice;
+use App\Models\InvoiceRequest;
 use App\Models\Rating;
 use App\Models\Tour;
+use App\Models\UserNotification;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -25,6 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::bind('booking', fn (string $value) => Booking::query()->where('booking_code', $value)->firstOrFail());
             Route::bind('rating', fn (string $value) => Rating::query()->where('rating_uuid', $value)->firstOrFail());
             Route::bind('invoice', fn (string $value) => Invoice::query()->where('invoice_uuid', $value)->firstOrFail());
+            Route::bind('notification', fn (string $value) => UserNotification::query()->where('notification_uuid', $value)->firstOrFail());
+            Route::bind('invoiceRequest', fn (string $value) => InvoiceRequest::query()->where('request_uuid', $value)->firstOrFail());
             Route::bind('enquiry', fn (string $value) => Contact::query()->whereKey($value)->firstOrFail());
             Route::bind('operator', fn (string $value) => Admin::query()->where('admin_slug', $value)->firstOrFail());
         },

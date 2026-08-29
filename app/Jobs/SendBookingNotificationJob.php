@@ -7,6 +7,8 @@ use App\Models\Actor;
 use App\Models\Admin;
 use App\Models\Booking;
 use App\Models\Client;
+use App\Models\UserNotification;
+use App\Services\NotificationService;
 use App\Services\SmsService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,7 +27,7 @@ class SendBookingNotificationJob implements ShouldQueue
         public array $recipients = ['client', 'admin'],
     ) {}
 
-    public function handle(SmsService $smsService): void
+    public function handle(SmsService $smsService, NotificationService $notifications): void
     {
         $booking = Booking::query()
             ->with('tour')
@@ -41,7 +43,7 @@ class SendBookingNotificationJob implements ShouldQueue
                 ? Client::query()->where('client_slug', $booking->client_slug)->first()
                 : null;
 
-            $this->notifyActor($smsService, $client, $booking, 'client');
+            $this->notifyActor($smsService, $notifications, $client, $booking, 'client');
         }
 
         if (in_array('admin', $this->recipients, true)) {
@@ -49,11 +51,11 @@ class SendBookingNotificationJob implements ShouldQueue
                 ? Admin::query()->where('admin_slug', $booking->admin_slug)->first()
                 : null;
 
-            $this->notifyActor($smsService, $admin, $booking, 'admin');
+            $this->notifyActor($smsService, $notifications, $admin, $booking, 'admin');
         }
     }
 
-    protected function notifyActor(SmsService $smsService, ?Actor $actor, Booking $booking, string $audience): void
+    protected function notifyActor(SmsService $smsService, NotificationService $notifications, ?Actor $actor, Booking $booking, string $audience): void
     {
         if (! $actor) {
             return;
@@ -75,6 +77,69 @@ class SendBookingNotificationJob implements ShouldQueue
         if (! empty($actor->phone_number)) {
             $smsService->send($actor->phone_number, $smsMessage);
         }
+
+        [$type, $inAppUrl] = $this->inAppNotificationMeta($booking, $audience);
+
+        if ($audience === 'client' && $actor instanceof Client) {
+            $notifications->notifyClient(
+                clientSlug: $actor->client_slug,
+                type: $type,
+                title: $headline,
+                body: $body,
+                actionUrl: $inAppUrl,
+                meta: ['booking_code' => $booking->booking_code],
+                sendEmail: false,
+            );
+        }
+
+        if ($audience === 'admin' && $actor instanceof Admin) {
+            $notifications->notifyAdmin(
+                adminSlug: $actor->admin_slug,
+                type: $type,
+                title: $headline,
+                body: $body,
+                actionUrl: $inAppUrl,
+                meta: ['booking_code' => $booking->booking_code],
+                sendEmail: false,
+            );
+        }
+    }
+
+    protected function inAppNotificationMeta(Booking $booking, string $audience): array
+    {
+        $clientBase = NotificationService::clientBaseUrl();
+        $adminBase = NotificationService::adminBaseUrl();
+
+        return match ($this->event) {
+            'booking_created' => [
+                UserNotification::TYPE_BOOKING_CREATED,
+                $audience === 'admin'
+                    ? $adminBase . '/admin/bookings/' . $booking->booking_code
+                    : $clientBase . '/my-bookings/' . $booking->booking_code,
+            ],
+            'booking_updated' => [
+                UserNotification::TYPE_BOOKING_UPDATED,
+                $audience === 'admin'
+                    ? $adminBase . '/admin/bookings/' . $booking->booking_code
+                    : $clientBase . '/my-bookings/' . $booking->booking_code,
+            ],
+            'payment_success' => [
+                UserNotification::TYPE_PAYMENT_SUCCESS,
+                $audience === 'admin'
+                    ? $adminBase . '/admin/payments'
+                    : $clientBase . '/my-payments',
+            ],
+            'payment_failed' => [
+                UserNotification::TYPE_PAYMENT_FAILED,
+                $audience === 'admin'
+                    ? $adminBase . '/admin/payments'
+                    : $clientBase . '/my-payments',
+            ],
+            default => [
+                UserNotification::TYPE_BOOKING_UPDATED,
+                $audience === 'admin' ? $adminBase . '/admin/bookings' : $clientBase . '/my-bookings',
+            ],
+        };
     }
 
     protected function buildContent(Booking $booking, string $audience): array

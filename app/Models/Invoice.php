@@ -31,6 +31,8 @@ class Invoice extends Model
         'billed_to_phone',
         'billed_to_address',
         'client_slug',
+        'sent_at',
+        'last_sent_to_email',
         'line_items',
     ];
 
@@ -41,6 +43,7 @@ class Invoice extends Model
         'discount_percent' => 'decimal:2',
         'shipping' => 'decimal:2',
         'line_items' => 'array',
+        'sent_at' => 'datetime',
         'deleted_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -79,6 +82,8 @@ class Invoice extends Model
             'billed_to_address' => $this->billed_to_address ?? '',
             'client_slug' => $this->client_slug,
             'line_items' => $this->line_items ?? [],
+            'sent_at' => $this->sent_at?->toIso8601String(),
+            'last_sent_to_email' => $this->last_sent_to_email,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

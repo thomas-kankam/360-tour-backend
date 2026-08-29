@@ -4,13 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rating;
+use App\Models\UserNotification;
+use App\Services\NotificationService;
 use App\Services\TourRatingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AdminRatingController extends Controller
 {
-    public function __construct(protected TourRatingService $tourRatingService) {}
+    public function __construct(
+        protected TourRatingService $tourRatingService,
+        protected NotificationService $notifications,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -49,6 +54,23 @@ class AdminRatingController extends Controller
         $this->tourRatingService->syncForTour($rating->tour_slug);
 
         $rating->load(['tour', 'client']);
+
+        $clientUrl = NotificationService::clientBaseUrl();
+        $tourSlug = $rating->tour_slug;
+        $type = $data['status'] === 'approved'
+            ? UserNotification::TYPE_RATING_APPROVED
+            : UserNotification::TYPE_RATING_REJECTED;
+
+        $this->notifications->notifyClient(
+            clientSlug: $rating->client_slug,
+            type: $type,
+            title: $data['status'] === 'approved' ? 'Your review was approved' : 'Your review was not published',
+            body: $data['status'] === 'approved'
+                ? 'Your review for ' . ($rating->tour?->name ?? 'a tour') . ' is now live.'
+                : 'Your review for ' . ($rating->tour?->name ?? 'a tour') . ' was not published.',
+            actionUrl: $clientUrl . '/tours/' . $tourSlug . '#tour-reviews',
+            meta: ['rating_uuid' => $rating->rating_uuid, 'tour_slug' => $tourSlug],
+        );
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Rating updated', $rating->toRatingArray(includeClientEmail: true));
     }

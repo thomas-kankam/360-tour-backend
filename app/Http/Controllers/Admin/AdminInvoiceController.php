@@ -85,18 +85,31 @@ class AdminInvoiceController extends Controller
     {
         $data = $request->validate([
             'email' => 'required|email',
+            'client_slug' => 'nullable|string|exists:clients,client_slug',
             'attach_pdf' => 'nullable|boolean',
             'message' => 'nullable|string|max:5000',
         ]);
 
+        $updates = [
+            'last_sent_to_email' => $data['email'],
+            'sent_at' => now(),
+            'billed_to_email' => $data['email'],
+        ];
+
+        if (! empty($data['client_slug'])) {
+            $updates['client_slug'] = $data['client_slug'];
+        }
+
+        $invoice->update($updates);
+
         SendInvoiceEmailJob::dispatch(
-            $invoice->invoice_uuid,
+            $invoice->fresh()->invoice_uuid,
             $data['email'],
             (bool) ($data['attach_pdf'] ?? false),
             $data['message'] ?? null,
         );
 
-        if ($invoice->status === 'draft') {
+        if ($invoice->fresh()->status === 'draft') {
             $invoice->update(['status' => 'sent']);
         }
 

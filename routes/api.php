@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\AdminClientController;
 use App\Http\Controllers\Admin\AdminCompanySettingsController;
 use App\Http\Controllers\Admin\AdminContactController;
 use App\Http\Controllers\Admin\AdminInvoiceController;
+use App\Http\Controllers\Admin\AdminInvoiceRequestController;
+use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\AdminLandingCmsController;
 use App\Http\Controllers\Admin\AdminListingController;
 use App\Http\Controllers\Admin\AdminOperatorController;
@@ -19,6 +21,9 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Client\ClientAuthenticationController;
 use App\Http\Controllers\Client\ClientBookingController;
 use App\Http\Controllers\Client\ClientContactController;
+use App\Http\Controllers\Client\ClientInvoiceController;
+use App\Http\Controllers\Client\ClientInvoiceRequestController;
+use App\Http\Controllers\Client\ClientNotificationController;
 use App\Http\Controllers\Client\ClientPaymentController;
 use App\Http\Controllers\Client\ClientRatingController;
 use App\Http\Controllers\ContactController;
@@ -70,6 +75,17 @@ Route::prefix('client')->group(function () {
 
         Route::get('enquiries', [ClientContactController::class, 'index']);
         Route::get('enquiries/{enquiry}', [ClientContactController::class, 'show']);
+
+        Route::get('notifications/unread-count', [ClientNotificationController::class, 'unreadCount']);
+        Route::get('notifications', [ClientNotificationController::class, 'index']);
+        Route::patch('notifications/read-all', [ClientNotificationController::class, 'markAllRead']);
+        Route::patch('notifications/{notification}/read', [ClientNotificationController::class, 'markRead']);
+
+        Route::get('invoices', [ClientInvoiceController::class, 'index']);
+        Route::get('invoices/{invoice}', [ClientInvoiceController::class, 'show']);
+
+        Route::get('invoice-requests', [ClientInvoiceRequestController::class, 'index']);
+        Route::post('invoice-requests', [ClientInvoiceRequestController::class, 'store']);
     });
 });
 
@@ -165,5 +181,16 @@ Route::prefix('admin')->group(function () {
 
         Route::get('company-settings', [AdminCompanySettingsController::class, 'show']);
         Route::post('company-settings', [AdminCompanySettingsController::class, 'store']);
+
+        Route::get('notifications/unread-count', [AdminNotificationController::class, 'unreadCount']);
+        Route::get('notifications', [AdminNotificationController::class, 'index']);
+        Route::patch('notifications/read-all', [AdminNotificationController::class, 'markAllRead']);
+        Route::patch('notifications/{notification}/read', [AdminNotificationController::class, 'markRead']);
+
+        Route::middleware('admin.permission:invoice_management')->group(function () {
+            Route::get('invoice-requests', [AdminInvoiceRequestController::class, 'index']);
+            Route::get('invoice-requests/{invoiceRequest}', [AdminInvoiceRequestController::class, 'show']);
+            Route::patch('invoice-requests/{invoiceRequest}/respond', [AdminInvoiceRequestController::class, 'respond']);
+        });
     });
 });

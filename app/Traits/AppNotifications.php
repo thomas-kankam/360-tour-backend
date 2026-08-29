@@ -147,6 +147,17 @@ trait AppNotifications
             $actor->verified_at = now();
             $actor->status = 'active';
             $actor->save();
+
+            if ($guard === 'client' && $actor instanceof \App\Models\Client) {
+                $clientName = trim($actor->first_name . ' ' . ($actor->last_name ?? '')) ?: $actor->email;
+                app(\App\Services\NotificationService::class)->notifyAllAdmins(
+                    type: \App\Models\UserNotification::TYPE_CLIENT_REGISTERED,
+                    title: 'New client signed up',
+                    body: $clientName . ' verified their account.',
+                    actionUrl: \App\Services\NotificationService::adminBaseUrl() . '/admin/clients/' . $actor->client_slug,
+                    meta: ['client_slug' => $actor->client_slug],
+                );
+            }
         }
 
         $reason = $shouldActivate

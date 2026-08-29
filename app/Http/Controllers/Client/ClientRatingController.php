@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Rating;
 use App\Models\Tour;
+use App\Models\UserNotification;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class ClientRatingController extends Controller
 {
+    public function __construct(protected NotificationService $notifications) {}
+
     public function index(Request $request): JsonResponse
     {
         $client = request()->user();
@@ -73,6 +77,17 @@ class ClientRatingController extends Controller
         ]);
 
         $rating->load('tour');
+
+        $clientName = trim($client->first_name . ' ' . ($client->last_name ?? '')) ?: $client->email;
+        $adminUrl = NotificationService::adminBaseUrl() . '/admin/ratings';
+
+        $this->notifications->notifyAllAdmins(
+            type: UserNotification::TYPE_RATING_PENDING,
+            title: 'Review pending approval',
+            body: $clientName . ' submitted a review for ' . ($tour->name ?? 'a tour') . '.',
+            actionUrl: $adminUrl,
+            meta: ['rating_uuid' => $rating->rating_uuid, 'tour_slug' => $tour->tour_slug],
+        );
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_CREATED, 'Review submitted', $rating->toRatingArray());
     }
