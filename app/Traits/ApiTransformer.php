@@ -3,6 +3,7 @@ namespace App\Traits;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -60,7 +61,7 @@ trait ApiTransformer
         ], $code);
     }
 
-    protected static function paginateQuery(Request $request, Builder $query, int $defaultPerPage = 15): LengthAwarePaginator
+    protected static function paginateQuery(Request $request, Builder|Relation $query, int $defaultPerPage = 15): LengthAwarePaginator
     {
         $perPage = max(1, min((int) $request->input('per_page', $defaultPerPage), 100));
         $page = max(1, (int) $request->input('page', 1));
