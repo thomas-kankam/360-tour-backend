@@ -94,18 +94,24 @@ class ListingController extends Controller
         ]);
     }
 
-    public function random(): JsonResponse
+    public function popular(): JsonResponse
     {
         $listings = Tour::query()
             ->published()
-            ->inRandomOrder()
+            ->latest()
             ->limit(8)
             ->get()
             ->map(fn (Tour $tour) => $tour->toListingArray())
             ->values()
             ->all();
 
-        return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Random listings retrieved', $listings);
+        return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Popular listings retrieved', $listings);
+    }
+
+    /** @deprecated use popular() */
+    public function random(): JsonResponse
+    {
+        return $this->popular();
     }
 
     public function show(Tour $listing): JsonResponse

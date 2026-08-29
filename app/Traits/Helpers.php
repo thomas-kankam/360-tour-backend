@@ -423,7 +423,7 @@ trait Helpers
             $content['cta']['image'] = static::persistCmsImageValue($content['cta']['image'], 'destination');
         }
 
-        foreach (['destinations', 'regions'] as $section) {
+        foreach (['destinations', 'regions', 'gallery', 'testimonials'] as $section) {
             if (! isset($content[$section]['items']) || ! is_array($content[$section]['items'])) {
                 continue;
             }
@@ -467,7 +467,7 @@ trait Helpers
                 ?? $content['cta']['image'];
         }
 
-        foreach (['destinations', 'regions'] as $section) {
+        foreach (['destinations', 'regions', 'gallery', 'testimonials'] as $section) {
             if (! isset($content[$section]['items']) || ! is_array($content[$section]['items'])) {
                 continue;
             }

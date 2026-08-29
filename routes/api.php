@@ -28,6 +28,7 @@ use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('listings', [ListingController::class, 'index']);
+Route::get('listings/popular', [ListingController::class, 'popular']);
 Route::get('listings/random', [ListingController::class, 'random']);
 Route::get('listings/regions', [ListingController::class, 'regions']);
 Route::get('listings/{listing}/reviews', [ListingController::class, 'reviews']);
