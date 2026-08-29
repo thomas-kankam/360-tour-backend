@@ -24,3 +24,18 @@
     php_value post_max_size 64M
     php_value upload_max_filesize 64M
 </IfModule>
+
+# ── Gzip (Apache) ─────────────────────────────────────────────────────────
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json application/javascript application/xml text/css text/html text/javascript text/plain text/xml image/svg+xml
+</IfModule>
+
+# ── Cache static public assets ────────────────────────────────────────────
+<IfModule mod_headers.c>
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico|css|js|woff2?)$">
+        Header set Cache-Control "public, max-age=2592000"
+    </FilesMatch>
+    # Long cache for uploaded files under /storage (UUID filenames)
+    SetEnvIf Request_URI "^/storage/" IS_STORAGE_UPLOAD
+    Header set Cache-Control "public, max-age=31536000, immutable" env=IS_STORAGE_UPLOAD
+</IfModule>
