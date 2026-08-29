@@ -54,10 +54,11 @@ class AdminInvoiceRequestController extends Controller
             'status' => $data['status'] ?? 'responded',
         ]);
 
+        $invoiceUuid = $data['invoice_uuid'] ?? $invoiceRequest->invoice_uuid;
         $clientUrl = NotificationService::clientBaseUrl();
-        $actionUrl = $data['invoice_uuid']
-            ? $clientUrl . '/my-invoices/' . $data['invoice_uuid']
-            : $clientUrl . '/my-invoices/requests';
+        $actionUrl = $invoiceUuid
+            ? $clientUrl . '/my-invoices/' . $invoiceUuid
+            : $clientUrl . '/my-invoices';
 
         $this->notifications->notifyClient(
             clientSlug: $invoiceRequest->client_slug,
@@ -69,7 +70,7 @@ class AdminInvoiceRequestController extends Controller
             actionUrl: $actionUrl,
             meta: [
                 'request_uuid' => $invoiceRequest->request_uuid,
-                'invoice_uuid' => $data['invoice_uuid'] ?? null,
+                'invoice_uuid' => $invoiceUuid,
             ],
         );
 
