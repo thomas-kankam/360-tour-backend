@@ -2,6 +2,18 @@
 #
 # Post-deploy for 360 Tours Laravel API (Ubuntu + Apache)
 #
+# Runs automatically (no extra commands needed after push):
+#   git pull
+#   composer install --no-dev --optimize-autoloader
+#   php artisan config:clear / cache:clear / route:clear / view:clear
+#   php artisan migrate --force
+#   php artisan storage:link --force
+#   cp deploy/storage.htaccess → public/storage/.htaccess
+#   php artisan queue:restart
+#   php artisan optimize  (config + route + event cache)
+#   chown www-data storage bootstrap/cache
+#   a2enmod rewrite deflate headers expires (+ optional apache reload)
+#
 # Usage (on the server, from repo root or deploy folder):
 #   chmod +x deploy/post-deploy.sh
 #   bash deploy/post-deploy.sh
@@ -101,10 +113,15 @@ if "${PHP_CMD}" artisan list 2>/dev/null | grep -q "queue:restart"; then
 fi
 
 # ── Rebuild production caches ────────────────────────────────────────────────
-log "Rebuilding config and route caches..."
-"${PHP_CMD}" artisan package:discover --ansi
-"${PHP_CMD}" artisan config:cache
-"${PHP_CMD}" artisan route:cache
+log "Optimizing Laravel (config + route + event cache)..."
+if "${PHP_CMD}" artisan optimize --no-interaction 2>/dev/null; then
+  log "php artisan optimize — OK"
+else
+  warn "optimize unavailable — falling back to config:cache + route:cache"
+  "${PHP_CMD}" artisan package:discover --ansi
+  "${PHP_CMD}" artisan config:cache
+  "${PHP_CMD}" artisan route:cache
+fi
 
 # ── Permissions for Apache ───────────────────────────────────────────────────
 if id www-data >/dev/null 2>&1; then
