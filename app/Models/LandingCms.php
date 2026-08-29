@@ -30,8 +30,8 @@ class LandingCms extends Model
         return [
             'hero' => [
                 'badge' => '360 Tours Ghana',
-                'title' => 'Experience Ghana in',
-                'titleHighlight' => '360°',
+                'title' => 'Experience',
+                'titleHighlight' => 'Ghana',
                 'subtitle' => 'Cultural heritage, pristine nature, and unforgettable adventures — tours, stays, and transport across Ghana.',
                 'tagline' => 'Explore More. Travel Better. Experience Ghana with 360 Tours.',
                 'primaryCtaLabel' => 'Book a tour',
