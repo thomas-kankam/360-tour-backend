@@ -149,10 +149,7 @@ class SendBookingNotificationJob implements ShouldQueue
         $selectedDate = $booking->selected_date?->format('M j, Y') ?? 'the selected date';
         $amount = number_format((float) $booking->amount, 2) . ' ' . $booking->currency;
 
-        $actionUrl = match ($audience) {
-            'admin' => config('custom.urls.admin_url'),
-            default => config('custom.urls.client_url'),
-        };
+        [, $actionUrl] = $this->inAppNotificationMeta($booking, $audience);
 
         return match ($this->event) {
             'booking_created' => match ($audience) {

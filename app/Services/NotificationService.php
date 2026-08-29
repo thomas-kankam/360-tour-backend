@@ -123,11 +123,41 @@ class NotificationService
 
     public static function clientBaseUrl(): string
     {
-        return rtrim((string) (config('custom.urls.client_url') ?: config('custom.urls.frontend_url')), '/');
+        return self::normalizeFrontendBaseUrl(
+            config('custom.urls.client_url') ?: config('custom.urls.frontend_url'),
+        );
     }
 
     public static function adminBaseUrl(): string
     {
-        return rtrim((string) (config('custom.urls.admin_url') ?: config('custom.urls.frontend_url')), '/');
+        return self::normalizeFrontendBaseUrl(
+            config('custom.urls.frontend_url')
+                ?: config('custom.urls.client_url')
+                ?: config('custom.urls.admin_url'),
+        );
+    }
+
+    protected static function normalizeFrontendBaseUrl(?string $url): string
+    {
+        $base = rtrim((string) $url, '/');
+
+        if ($base === '') {
+            return '';
+        }
+
+        // ADMIN_URL is sometimes set to the login screen — strip login path for deep links.
+        $base = preg_replace('#/admin/login$#', '', $base) ?? $base;
+
+        return rtrim($base, '/');
+    }
+
+    public static function adminPath(string $path): string
+    {
+        return self::adminBaseUrl() . '/' . ltrim($path, '/');
+    }
+
+    public static function clientPath(string $path): string
+    {
+        return self::clientBaseUrl() . '/' . ltrim($path, '/');
     }
 }
