@@ -114,6 +114,11 @@ class Tour extends Model
         return $query->where('status', 'published');
     }
 
+    public static function publicMediaUrl(?string $url): ?string
+    {
+        return static::normalizePublicUrl($url);
+    }
+
     public function scopeOfType(Builder $query, string $type): Builder
     {
         return $query->where('tour_type', $type);

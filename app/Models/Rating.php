@@ -62,12 +62,34 @@ class Rating extends Model
         });
     }
 
+    public function toClientReviewArray(): array
+    {
+        $tour = $this->relationLoaded('tour') ? $this->tour : null;
+
+        return [
+            'id' => $this->rating_uuid,
+            'tour_slug' => $this->tour_slug,
+            'tour_title' => $tour?->name,
+            'tour_image' => $tour?->cover_image_url
+                ? Tour::publicMediaUrl($tour->cover_image_url)
+                : null,
+            'rating' => $this->rating,
+            'comment' => $this->comment,
+            'status' => $this->status,
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
+        ];
+    }
+
     public function toRatingArray(bool $includeClientEmail = false): array
     {
         $data = [
             'id' => $this->rating_uuid,
             'tour_slug' => $this->tour_slug,
             'tour_title' => $this->relationLoaded('tour') && $this->tour ? $this->tour->name : null,
+            'tour_image' => $this->relationLoaded('tour') && $this->tour && $this->tour->cover_image_url
+                ? Tour::publicMediaUrl($this->tour->cover_image_url)
+                : null,
             'rating' => $this->rating,
             'comment' => $this->comment,
             'status' => $this->status,

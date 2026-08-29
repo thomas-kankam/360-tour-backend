@@ -18,11 +18,16 @@ class ClientRatingController extends Controller
         $query = Rating::query()
             ->with('tour')
             ->where('client_slug', $client->client_slug)
+            ->whereHas('tour')
             ->latest();
 
-        $paginator = self::paginateQuery($request, $query);
+        if ($request->filled('tour_slug')) {
+            $query->where('tour_slug', $request->string('tour_slug'));
+        }
 
-        return self::paginatedApiResponse('Ratings retrieved', $paginator, fn (Rating $rating) => $rating->toRatingArray());
+        $paginator = self::paginateQuery($request, $query, 50);
+
+        return self::paginatedApiResponse('Ratings retrieved', $paginator, fn (Rating $rating) => $rating->toClientReviewArray());
     }
 
     public function show(Rating $rating): JsonResponse
