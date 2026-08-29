@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Traits\Helpers;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -84,5 +85,43 @@ class ImageHelpersTest extends TestCase
         $this->assertSame(1280, $spec['width']);
         $this->assertSame(800, $spec['height']);
         $this->assertSame('cover', $spec['fit']);
+    }
+
+    public function test_loopback_storage_urls_are_rewritten_to_configured_app_url(): void
+    {
+        config([
+            'app.url' => 'https://api.360toursghana.com',
+            'custom.urls.backend_url' => 'https://api.360toursghana.com',
+        ]);
+
+        $this->app->instance('request', Request::create('http://127.0.0.1:8000/api/listings', 'GET'));
+
+        $this->assertSame(
+            'https://api.360toursghana.com/storage/uploads/images/a.webp',
+            HelpersProbe::normalizePublicUrl('http://127.0.0.1:8000/storage/uploads/images/a.webp')
+        );
+    }
+
+    public function test_uses_request_host_when_app_url_is_loopback(): void
+    {
+        config([
+            'app.url' => 'http://127.0.0.1:8000',
+            'custom.urls.backend_url' => 'http://127.0.0.1:8000',
+        ]);
+
+        $this->app->instance('request', Request::create('https://api.360toursghana.com/api/listings', 'GET'));
+
+        $this->assertSame(
+            'https://api.360toursghana.com/storage/uploads/images/a.webp',
+            HelpersProbe::normalizePublicUrl('/storage/uploads/images/a.webp')
+        );
+    }
+
+    public function test_persists_storage_urls_as_hostless_paths(): void
+    {
+        $this->assertSame(
+            '/storage/uploads/images/a.webp',
+            HelpersProbe::persistStoredImageValue('http://127.0.0.1:8000/storage/uploads/images/a.webp')
+        );
     }
 }

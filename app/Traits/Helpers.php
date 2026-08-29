@@ -214,22 +214,72 @@ trait Helpers
         };
     }
 
-    protected static function publicAssetBase(): string
+    protected static function isLoopbackHost(?string $host): bool
     {
-        $request = request();
-
-        if ($request && $request->getHost()) {
-            $host = $request->getHost();
-            $isLocalHost = in_array($host, ['localhost', '127.0.0.1', '::1'], true)
-                || str_ends_with($host, '.test')
-                || str_ends_with($host, '.local');
-
-            if ($isLocalHost) {
-                return rtrim($request->getSchemeAndHttpHost(), '/');
-            }
+        if ($host === null || $host === '') {
+            return true;
         }
 
-        return rtrim((string) (config('custom.urls.backend_url') ?: config('app.url')), '/');
+        $host = strtolower(trim($host, '[]'));
+
+        return in_array($host, ['localhost', '127.0.0.1', '::1', '0.0.0.0'], true)
+            || str_ends_with($host, '.test')
+            || str_ends_with($host, '.local')
+            || str_ends_with($host, '.localhost');
+    }
+
+    /**
+     * Public origin for /storage files. Never emit a loopback host when APP_URL
+     * (or the incoming request) is a real public hostname — that is what broke
+     * production uploads behind `php artisan serve` on 127.0.0.1:8000.
+     */
+    protected static function publicAssetBase(): string
+    {
+        $configured = rtrim((string) (config('custom.urls.backend_url') ?: config('app.url')), '/');
+        $configuredHost = parse_url($configured, PHP_URL_HOST);
+        $configuredIsPublic = $configured !== '' && ! static::isLoopbackHost($configuredHost);
+
+        $request = request();
+        $requestHost = $request?->getHost() ?: '';
+        $requestBase = $requestHost !== '' ? rtrim($request->getSchemeAndHttpHost(), '/') : '';
+        $requestIsPublic = $requestHost !== '' && ! static::isLoopbackHost($requestHost);
+
+        if ($configuredIsPublic) {
+            return $configured;
+        }
+
+        if ($requestIsPublic) {
+            return $requestBase;
+        }
+
+        return $requestBase !== '' ? $requestBase : $configured;
+    }
+
+    protected static function toStoredMediaPath(?string $url): ?string
+    {
+        if ($url === null) {
+            return null;
+        }
+
+        $url = trim($url);
+        if ($url === '' || str_starts_with($url, 'data:')) {
+            return $url === '' ? null : $url;
+        }
+
+        $path = $url;
+        if (! str_starts_with($url, '/')) {
+            $parsedPath = parse_url($url, PHP_URL_PATH);
+            $path = is_string($parsedPath) ? $parsedPath : $url;
+        }
+
+        $path = preg_replace('#/+#', '/', str_replace('\\', '/', $path)) ?: '';
+        if (str_contains($path, '/storage/')) {
+            $relative = ltrim((string) preg_replace('#^.*?/storage/#', '', $path), '/');
+
+            return $relative !== '' ? '/storage/'.$relative : $url;
+        }
+
+        return $url;
     }
 
     protected static function storagePublicUrl(string $filePath): string
@@ -360,7 +410,7 @@ trait Helpers
             return static::base64ImageDecode($candidate, $variant);
         }
 
-        return $candidate;
+        return static::toStoredMediaPath($candidate);
     }
 
     protected static function persistLandingCmsImages(array $content): array
@@ -402,7 +452,7 @@ trait Helpers
             return static::base64ImageDecode($candidate, $variant) ?? '';
         }
 
-        return $candidate;
+        return static::toStoredMediaPath($candidate) ?? '';
     }
 
     protected static function normalizeLandingCmsUrls(array $content): array
