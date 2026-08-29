@@ -36,6 +36,7 @@ GIT_REMOTE="${GIT_REMOTE:-origin}"
 SKIP_PULL="${SKIP_PULL:-0}"
 RUN_MIGRATE="${RUN_MIGRATE:-1}"
 RELOAD_APACHE="${RELOAD_APACHE:-0}"
+GIT_RESET="${GIT_RESET:-1}"
 PHP_CMD="${PHP_CMD:-php}"
 COMPOSER_CMD="${COMPOSER_CMD:-composer}"
 
@@ -54,8 +55,16 @@ log "App directory: ${APP_DIR}"
 if [[ "${SKIP_PULL}" != "1" ]] && [[ -d "${APP_DIR}/.git" ]]; then
   log "Fetching ${GIT_REMOTE}/${BRANCH}..."
   git fetch "${GIT_REMOTE}" "${BRANCH}"
-  git checkout "${BRANCH}"
-  git pull "${GIT_REMOTE}" "${BRANCH}"
+  git checkout "${BRANCH}" 2>/dev/null || git checkout -b "${BRANCH}" "${GIT_REMOTE}/${BRANCH}"
+
+  if [[ "${GIT_RESET}" == "1" ]]; then
+    if ! git diff-index --quiet HEAD -- 2>/dev/null || ! git diff-index --quiet --cached HEAD -- 2>/dev/null; then
+      log "Local tracked changes detected — resetting to ${GIT_REMOTE}/${BRANCH}..."
+    fi
+    git reset --hard "${GIT_REMOTE}/${BRANCH}"
+  else
+    git pull "${GIT_REMOTE}" "${BRANCH}"
+  fi
 else
   log "Skipping git pull"
 fi
