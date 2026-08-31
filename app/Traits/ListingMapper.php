@@ -184,6 +184,27 @@ trait ListingMapper
                 unset($day['image_url']);
             }
 
+            if (isset($day['accommodation']) && is_array($day['accommodation'])) {
+                $accImage = $day['accommodation']['imageUrl'] ?? $day['accommodation']['image_url'] ?? null;
+                if ($accImage) {
+                    $day['accommodation']['imageUrl'] = static::decodeImageUrl($accImage, 'tour');
+                    unset($day['accommodation']['image_url']);
+                }
+            }
+
+            if (isset($day['meals']) && is_array($day['meals'])) {
+                foreach ($day['meals'] as $mealIndex => $meal) {
+                    if (! is_array($meal)) {
+                        continue;
+                    }
+                    $mealImage = $meal['imageUrl'] ?? $meal['image_url'] ?? null;
+                    if ($mealImage) {
+                        $day['meals'][$mealIndex]['imageUrl'] = static::decodeImageUrl($mealImage, 'tour');
+                        unset($day['meals'][$mealIndex]['image_url']);
+                    }
+                }
+            }
+
             return $day;
         }, $itinerary));
     }

@@ -25,4 +25,21 @@ class AdminUploadController extends Controller
             'url' => $url,
         ]);
     }
+
+    public function storeVideo(Request $request): JsonResponse
+    {
+        $request->validate([
+            'video' => 'required|file|mimes:mp4,webm|max:25600',
+        ]);
+
+        $url = static::storeUploadedVideo($request->file('video'));
+
+        if (! $url) {
+            return self::apiResponse(true, 'Upload Failed', '400', 'Could not store video', []);
+        }
+
+        return self::apiResponse(false, 'Action Successful', (string) self::API_CREATED, 'Video uploaded', [
+            'url' => $url,
+        ]);
+    }
 }

@@ -56,6 +56,7 @@ Route::prefix('client')->group(function () {
         Route::post('logout', [ClientAuthenticationController::class, 'logout']);
         Route::post('update-profile', [ClientAuthenticationController::class, 'updateProfile']);
         Route::post('uploads/images', [AdminUploadController::class, 'storeImage']);
+        Route::post('uploads/videos', [AdminUploadController::class, 'storeVideo']);
 
         Route::get('bookings', [ClientBookingController::class, 'index']);
         Route::get('bookings/{booking}', [ClientBookingController::class, 'show']);
@@ -99,6 +100,7 @@ Route::prefix('admin')->group(function () {
         Route::post('update-profile', [AdminAuthenticationController::class, 'updateProfile']);
 
         Route::post('uploads/images', [AdminUploadController::class, 'storeImage']);
+        Route::post('uploads/videos', [AdminUploadController::class, 'storeVideo']);
         Route::get('system/limits', [AdminSystemController::class, 'limits']);
 
         Route::middleware('admin.permission:listing_management')->group(function () {

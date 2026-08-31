@@ -36,7 +36,16 @@ class LandingCms extends Model
                 'tagline' => 'Explore More. Travel Better. Experience Ghana with 360 Tours.',
                 'primaryCtaLabel' => 'Book a tour',
                 'secondaryCtaLabel' => 'Plan your trip',
+                'mediaType' => 'image',
                 'backgroundImage' => '/images/gallery/optimized/hero.webp',
+                'slideshowImages' => [],
+                'backgroundVideo' => '',
+            ],
+            'auth' => [
+                'loginImage' => '/images/home/ghana_tour.png',
+                'signupImage' => '/images/home/manhyia_palace.jpg',
+                'verifyImage' => '/images/home/arts_and_craft.jpg',
+                'adminImage' => '/images/gallery/optimized/hero.webp',
             ],
             'tours' => [
                 'eyebrow' => 'Discover tours',

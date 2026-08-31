@@ -264,15 +264,43 @@ class Tour extends Model
             }
 
             $imageUrl = $day['imageUrl'] ?? $day['image_url'] ?? null;
-            if (! $imageUrl) {
-                return $day;
+            if ($imageUrl) {
+                $persisted = static::persistStoredImageValue($imageUrl, 'tour');
+                if ($persisted !== $imageUrl) {
+                    $itineraryChanged = true;
+                    $day['imageUrl'] = $persisted;
+                    unset($day['image_url']);
+                }
             }
 
-            $persisted = static::persistStoredImageValue($imageUrl, 'tour');
-            if ($persisted !== $imageUrl) {
-                $itineraryChanged = true;
-                $day['imageUrl'] = $persisted;
-                unset($day['image_url']);
+            if (isset($day['accommodation']) && is_array($day['accommodation'])) {
+                $accImage = $day['accommodation']['imageUrl'] ?? $day['accommodation']['image_url'] ?? null;
+                if ($accImage) {
+                    $persisted = static::persistStoredImageValue($accImage, 'tour');
+                    if ($persisted !== $accImage) {
+                        $itineraryChanged = true;
+                        $day['accommodation']['imageUrl'] = $persisted;
+                        unset($day['accommodation']['image_url']);
+                    }
+                }
+            }
+
+            if (isset($day['meals']) && is_array($day['meals'])) {
+                foreach ($day['meals'] as $mealIndex => $meal) {
+                    if (! is_array($meal)) {
+                        continue;
+                    }
+                    $mealImage = $meal['imageUrl'] ?? $meal['image_url'] ?? null;
+                    if (! $mealImage) {
+                        continue;
+                    }
+                    $persisted = static::persistStoredImageValue($mealImage, 'tour');
+                    if ($persisted !== $mealImage) {
+                        $itineraryChanged = true;
+                        $day['meals'][$mealIndex]['imageUrl'] = $persisted;
+                        unset($day['meals'][$mealIndex]['image_url']);
+                    }
+                }
             }
 
             return $day;

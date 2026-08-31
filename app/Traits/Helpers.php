@@ -63,6 +63,33 @@ trait Helpers
         return static::storeImageBinary($contents, $extension, $variant);
     }
 
+    protected static function storeUploadedVideo(?UploadedFile $file): ?string
+    {
+        if (! $file || ! $file->isValid()) {
+            return null;
+        }
+
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'mp4');
+        if (! in_array($extension, ['mp4', 'webm'], true)) {
+            return null;
+        }
+
+        $contents = $file->get();
+        if (! is_string($contents) || $contents === '') {
+            return null;
+        }
+
+        $fileName = Str::uuid().'.'.$extension;
+        $filePath = "uploads/videos/{$fileName}";
+        $stored = Storage::disk('public')->put($filePath, $contents);
+
+        if (! $stored) {
+            return null;
+        }
+
+        return static::storagePublicUrl($filePath);
+    }
+
     protected static function storeImageBinary(string $contents, string $extension, string $variant = 'generic'): ?string
     {
         $optimized = static::optimizeImageBinary($contents, $extension, $variant);
@@ -419,6 +446,33 @@ trait Helpers
             $content['hero']['backgroundImage'] = static::persistCmsImageValue($content['hero']['backgroundImage'], 'hero');
         }
 
+        if (! empty($content['hero']['slideshowImages']) && is_array($content['hero']['slideshowImages'])) {
+            foreach ($content['hero']['slideshowImages'] as $index => $slide) {
+                if (! $slide) {
+                    continue;
+                }
+                $content['hero']['slideshowImages'][$index] = static::persistCmsImageValue($slide, 'hero');
+            }
+            $content['hero']['slideshowImages'] = array_values(array_filter(
+                $content['hero']['slideshowImages'],
+                fn ($slide) => is_string($slide) && $slide !== ''
+            ));
+        }
+
+        if (! empty($content['hero']['backgroundVideo'])) {
+            $content['hero']['backgroundVideo'] = static::toStoredMediaPath($content['hero']['backgroundVideo'])
+                ?? $content['hero']['backgroundVideo'];
+        }
+
+        if (! empty($content['auth']) && is_array($content['auth'])) {
+            foreach (['loginImage', 'signupImage', 'verifyImage', 'adminImage'] as $key) {
+                if (empty($content['auth'][$key])) {
+                    continue;
+                }
+                $content['auth'][$key] = static::persistCmsImageValue($content['auth'][$key], 'destination');
+            }
+        }
+
         if (! empty($content['cta']['image'])) {
             $content['cta']['image'] = static::persistCmsImageValue($content['cta']['image'], 'destination');
         }
@@ -460,6 +514,30 @@ trait Helpers
         if (! empty($content['hero']['backgroundImage'])) {
             $content['hero']['backgroundImage'] = static::normalizePublicUrl($content['hero']['backgroundImage'])
                 ?? $content['hero']['backgroundImage'];
+        }
+
+        if (! empty($content['hero']['backgroundVideo'])) {
+            $content['hero']['backgroundVideo'] = static::normalizePublicUrl($content['hero']['backgroundVideo'])
+                ?? $content['hero']['backgroundVideo'];
+        }
+
+        if (! empty($content['hero']['slideshowImages']) && is_array($content['hero']['slideshowImages'])) {
+            foreach ($content['hero']['slideshowImages'] as $index => $slide) {
+                if (! $slide) {
+                    continue;
+                }
+                $content['hero']['slideshowImages'][$index] = static::normalizePublicUrl($slide) ?? $slide;
+            }
+        }
+
+        if (! empty($content['auth']) && is_array($content['auth'])) {
+            foreach (['loginImage', 'signupImage', 'verifyImage', 'adminImage'] as $key) {
+                if (empty($content['auth'][$key])) {
+                    continue;
+                }
+                $content['auth'][$key] = static::normalizePublicUrl($content['auth'][$key])
+                    ?? $content['auth'][$key];
+            }
         }
 
         if (! empty($content['cta']['image'])) {
@@ -514,6 +592,27 @@ trait Helpers
             if ($imageUrl) {
                 $day['imageUrl'] = static::decodeImageUrl($imageUrl, 'tour');
                 unset($day['image_url']);
+            }
+
+            if (isset($day['accommodation']) && is_array($day['accommodation'])) {
+                $accImage = $day['accommodation']['imageUrl'] ?? $day['accommodation']['image_url'] ?? null;
+                if ($accImage) {
+                    $day['accommodation']['imageUrl'] = static::decodeImageUrl($accImage, 'tour');
+                    unset($day['accommodation']['image_url']);
+                }
+            }
+
+            if (isset($day['meals']) && is_array($day['meals'])) {
+                foreach ($day['meals'] as $mealIndex => $meal) {
+                    if (! is_array($meal)) {
+                        continue;
+                    }
+                    $mealImage = $meal['imageUrl'] ?? $meal['image_url'] ?? null;
+                    if ($mealImage) {
+                        $day['meals'][$mealIndex]['imageUrl'] = static::decodeImageUrl($mealImage, 'tour');
+                        unset($day['meals'][$mealIndex]['image_url']);
+                    }
+                }
             }
 
             return $day;

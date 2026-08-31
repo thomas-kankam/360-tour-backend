@@ -108,6 +108,7 @@ class AdminLandingCmsController extends Controller
         $data = $request->validate([
             'content' => 'required|array',
             'content.hero' => 'required|array',
+            'content.auth' => 'nullable|array',
             'content.tours' => 'required|array',
             'content.destinations' => 'required|array',
             'content.regions' => 'nullable|array',
