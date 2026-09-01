@@ -85,7 +85,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            if ($e instanceof PostTooLargeException) {
+            // Let Laravel render these with proper status codes (422/401/403/404/413).
+            if ($e instanceof PostTooLargeException
+                || $e instanceof \Illuminate\Validation\ValidationException
+                || $e instanceof \Illuminate\Auth\AuthenticationException
+                || $e instanceof \Illuminate\Auth\Access\AuthorizationException
+                || $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+                || $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
                 return null;
             }
 

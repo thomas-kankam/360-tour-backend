@@ -70,20 +70,39 @@ trait Helpers
         }
 
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'mp4');
-        if (! in_array($extension, ['mp4', 'webm'], true)) {
-            return null;
+        if ($extension === 'mov') {
+            $extension = 'mp4';
         }
-
-        $contents = $file->get();
-        if (! is_string($contents) || $contents === '') {
+        if (! in_array($extension, ['mp4', 'webm'], true)) {
+            // Fall back to mime when the client extension is missing/odd.
+            $mime = strtolower((string) $file->getMimeType());
+            $extension = match (true) {
+                str_contains($mime, 'webm') => 'webm',
+                str_contains($mime, 'mp4'), str_contains($mime, 'quicktime') => 'mp4',
+                default => '',
+            };
+        }
+        if ($extension === '') {
             return null;
         }
 
         $fileName = Str::uuid().'.'.$extension;
         $filePath = "uploads/videos/{$fileName}";
-        $stored = Storage::disk('public')->put($filePath, $contents);
 
-        if (! $stored) {
+        // Stream to disk — do not load the whole video into memory.
+        try {
+            $storedPath = Storage::disk('public')->putFileAs('uploads/videos', $file, $fileName);
+        } catch (\Throwable $e) {
+            logger()->error('Failed to store uploaded video', [
+                'error' => $e->getMessage(),
+                'original' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+            ]);
+
+            return null;
+        }
+
+        if (! $storedPath) {
             return null;
         }
 
@@ -453,10 +472,10 @@ trait Helpers
                 }
                 $content['hero']['slideshowImages'][$index] = static::persistCmsImageValue($slide, 'hero');
             }
-            $content['hero']['slideshowImages'] = array_values(array_filter(
+            $content['hero']['slideshowImages'] = array_slice(array_values(array_filter(
                 $content['hero']['slideshowImages'],
                 fn ($slide) => is_string($slide) && $slide !== ''
-            ));
+            )), 0, 5);
         }
 
         if (! empty($content['hero']['backgroundVideo'])) {
@@ -528,6 +547,11 @@ trait Helpers
                 }
                 $content['hero']['slideshowImages'][$index] = static::normalizePublicUrl($slide) ?? $slide;
             }
+            $content['hero']['slideshowImages'] = array_slice(
+                array_values(array_filter($content['hero']['slideshowImages'], fn ($slide) => is_string($slide) && $slide !== '')),
+                0,
+                5
+            );
         }
 
         if (! empty($content['auth']) && is_array($content['auth'])) {
