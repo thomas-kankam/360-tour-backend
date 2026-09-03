@@ -10,7 +10,8 @@ use App\Http\Controllers\Admin\AdminInvoiceRequestController;
 use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\AdminLandingCmsController;
 use App\Http\Controllers\Admin\AdminListingController;
-use App\Http\Controllers\Admin\AdminOperatorController;
+use App\Http\Controllers\Admin\AdminExperienceController;
+use App\Http\Controllers\Admin\AdminStoryController;
 use App\Http\Controllers\Admin\AdminPaymentController;
 use App\Http\Controllers\Admin\AdminPermissionController;
 use App\Http\Controllers\Admin\AdminRatingController;
@@ -27,9 +28,11 @@ use App\Http\Controllers\Client\ClientNotificationController;
 use App\Http\Controllers\Client\ClientPaymentController;
 use App\Http\Controllers\Client\ClientRatingController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\ExperienceController;
 use App\Http\Controllers\LandingCmsController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\StoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('listings', [ListingController::class, 'index']);
@@ -41,6 +44,9 @@ Route::get('listings/{listing}', [ListingController::class, 'show']);
 Route::get('sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index']);
 Route::post('contacts', [ContactController::class, 'store']);
 Route::get('landing-cms', [LandingCmsController::class, 'show']);
+Route::get('stories', [StoryController::class, 'index']);
+Route::get('stories/{slug}', [StoryController::class, 'show']);
+Route::get('experiences', [ExperienceController::class, 'index']);
 
 Route::get('payment/callback', [PaymentController::class, 'callback']);
 Route::get('payment/verify', [PaymentController::class, 'verify']);
@@ -110,8 +116,6 @@ Route::prefix('admin')->group(function () {
             Route::put('listings/{listing}', [AdminListingController::class, 'update']);
             Route::patch('listings/{listing}/status', [AdminListingController::class, 'updateStatus']);
             Route::delete('listings/{listing}', [AdminListingController::class, 'destroy']);
-            Route::get('operators', [AdminOperatorController::class, 'index']);
-            Route::get('operators/{operator}', [AdminOperatorController::class, 'show']);
         });
 
         Route::middleware('admin.permission:booking_management')->group(function () {
@@ -179,6 +183,22 @@ Route::prefix('admin')->group(function () {
             Route::put('landing-cms', [AdminLandingCmsController::class, 'updateDraft']);
             Route::post('landing-cms/publish', [AdminLandingCmsController::class, 'publish']);
             Route::post('landing-cms/reset', [AdminLandingCmsController::class, 'reset']);
+
+            Route::get('stories', [AdminStoryController::class, 'index']);
+            Route::post('stories', [AdminStoryController::class, 'store']);
+            Route::get('stories/{story}', [AdminStoryController::class, 'show']);
+            Route::put('stories/{story}', [AdminStoryController::class, 'update']);
+            Route::delete('stories/{story}', [AdminStoryController::class, 'destroy']);
+            Route::post('stories/{story}/publish', [AdminStoryController::class, 'publish']);
+            Route::post('stories/{story}/unpublish', [AdminStoryController::class, 'unpublish']);
+
+            Route::get('experiences', [AdminExperienceController::class, 'index']);
+            Route::post('experiences', [AdminExperienceController::class, 'store']);
+            Route::get('experiences/{experience}', [AdminExperienceController::class, 'show']);
+            Route::put('experiences/{experience}', [AdminExperienceController::class, 'update']);
+            Route::delete('experiences/{experience}', [AdminExperienceController::class, 'destroy']);
+            Route::post('experiences/{experience}/publish', [AdminExperienceController::class, 'publish']);
+            Route::post('experiences/{experience}/unpublish', [AdminExperienceController::class, 'unpublish']);
         });
 
         Route::get('company-settings', [AdminCompanySettingsController::class, 'show']);

@@ -86,28 +86,4 @@ class Admin extends Actor
 
         return $data;
     }
-
-    public function toOperatorArray(): array
-    {
-        static::persistActorProfileImage($this);
-
-        $this->loadMissing('role');
-
-        return [
-            'id' => $this->id,
-            'operatorSlug' => $this->admin_slug,
-            'firstName' => $this->first_name,
-            'lastName' => $this->last_name,
-            'email' => $this->email,
-            'phoneNumber' => $this->phone_number,
-            'organization' => $this->role?->label ?? $this->role?->name ?? '',
-            'location' => '',
-            'isVerified' => $this->status === 'active',
-            'verifiedAt' => $this->status === 'active' ? $this->updated_at?->toIso8601String() : null,
-            'status' => $this->status,
-            'profileImage' => static::normalizePublicUrl($this->profile_image),
-            'createdAt' => $this->created_at?->toIso8601String(),
-            'updatedAt' => $this->updated_at?->toIso8601String(),
-        ];
-    }
 }

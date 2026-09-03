@@ -6,29 +6,36 @@ use App\Traits\Helpers;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-class Story extends Model
+class Experience extends Model
 {
     use Helpers;
 
     protected $fillable = [
+        'experience_key',
         'slug',
-        'title',
-        'excerpt',
-        'category',
-        'country',
-        'author',
-        'author_role',
-        'display_date',
-        'read_time',
+        'label',
+        'icon_key',
+        'tagline',
+        'description',
+        'highlights',
+        'regions',
+        'keywords',
         'image',
-        'body',
+        'badge_text',
+        'tour_query',
+        'story_category',
+        'related_story_slugs',
         'status',
         'published_at',
         'sort_order',
     ];
 
     protected $casts = [
-        'body' => 'array',
+        'highlights' => 'array',
+        'regions' => 'array',
+        'keywords' => 'array',
+        'tour_query' => 'array',
+        'related_story_slugs' => 'array',
         'published_at' => 'datetime',
         'sort_order' => 'integer',
     ];
@@ -38,23 +45,26 @@ class Story extends Model
         return $query->where('status', 'published');
     }
 
-    public function toStoryArray(bool $includeStatus = false): array
+    public function toExperienceArray(bool $includeStatus = false): array
     {
         $image = static::normalizePublicUrl($this->image) ?? $this->image;
 
         $payload = [
             'id' => $this->id,
+            'key' => $this->experience_key,
             'slug' => $this->slug,
-            'title' => $this->title,
-            'excerpt' => $this->excerpt,
-            'category' => $this->category,
-            'country' => $this->country,
-            'author' => $this->author,
-            'authorRole' => $this->author_role,
-            'date' => $this->display_date,
-            'readTime' => $this->read_time,
+            'label' => $this->label,
+            'iconKey' => $this->icon_key,
+            'tagline' => $this->tagline,
+            'description' => $this->description,
+            'highlights' => is_array($this->highlights) ? $this->highlights : [],
+            'regions' => is_array($this->regions) ? $this->regions : [],
+            'keywords' => is_array($this->keywords) ? $this->keywords : [],
             'image' => $image,
-            'body' => is_array($this->body) ? $this->body : [],
+            'badgeText' => $this->badge_text,
+            'tourQuery' => is_array($this->tour_query) ? $this->tour_query : [],
+            'storyCategory' => $this->story_category,
+            'relatedStorySlugs' => is_array($this->related_story_slugs) ? $this->related_story_slugs : [],
             'sortOrder' => (int) $this->sort_order,
             'publishedAt' => $this->published_at?->toIso8601String(),
             'createdAt' => $this->created_at?->toIso8601String(),

@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Cors;
-use App\Models\Admin;
 use App\Models\Booking;
 use App\Models\Contact;
 use App\Models\Invoice;
@@ -30,7 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::bind('notification', fn (string $value) => UserNotification::query()->where('notification_uuid', $value)->firstOrFail());
             Route::bind('invoiceRequest', fn (string $value) => InvoiceRequest::query()->where('request_uuid', $value)->firstOrFail());
             Route::bind('enquiry', fn (string $value) => Contact::query()->whereKey($value)->firstOrFail());
-            Route::bind('operator', fn (string $value) => Admin::query()->where('admin_slug', $value)->firstOrFail());
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
