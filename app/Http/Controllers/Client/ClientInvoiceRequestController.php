@@ -17,9 +17,14 @@ class ClientInvoiceRequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         $client = $request->user();
+        $slug = trim((string) ($client->client_slug ?? ''));
 
         $query = InvoiceRequest::query()
-            ->where('client_slug', $client->client_slug)
+            ->when(
+                $slug !== '',
+                fn ($builder) => $builder->where('client_slug', $slug),
+                fn ($builder) => $builder->whereRaw('1 = 0'),
+            )
             ->latest();
 
         $paginator = self::paginateQuery($request, $query, 20);

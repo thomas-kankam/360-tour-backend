@@ -12,11 +12,25 @@ class ClientInvoiceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $client = $request->user();
+        $email = strtolower(trim((string) ($client->email ?? '')));
+        $slug = trim((string) ($client->client_slug ?? ''));
 
+        // Never match on null/empty client_slug — Laravel's where(col, null) becomes
+        // WHERE col IS NULL and would return other people's unlinked invoices.
         $query = Invoice::query()
-            ->where(function ($builder) use ($client) {
-                $builder->where('client_slug', $client->client_slug)
-                    ->orWhere('billed_to_email', $client->email);
+            ->where(function ($builder) use ($email, $slug) {
+                if ($slug !== '') {
+                    $builder->where('client_slug', $slug);
+                }
+
+                if ($email !== '') {
+                    $method = $slug !== '' ? 'orWhereRaw' : 'whereRaw';
+                    $builder->{$method}('LOWER(TRIM(billed_to_email)) = ?', [$email]);
+                }
+
+                if ($slug === '' && $email === '') {
+                    $builder->whereRaw('1 = 0');
+                }
             })
             ->whereIn('status', ['sent', 'paid'])
             ->latest();
@@ -43,10 +57,17 @@ class ClientInvoiceController extends Controller
 
     protected function clientCanView($client, Invoice $invoice): bool
     {
-        if ($invoice->client_slug && $invoice->client_slug === $client->client_slug) {
+        $email = strtolower(trim((string) ($client->email ?? '')));
+        $slug = trim((string) ($client->client_slug ?? ''));
+
+        if ($slug !== '' && $invoice->client_slug && $invoice->client_slug === $slug) {
             return true;
         }
 
-        return strcasecmp((string) $invoice->billed_to_email, (string) $client->email) === 0;
+        if ($email === '') {
+            return false;
+        }
+
+        return strcasecmp(trim((string) $invoice->billed_to_email), $email) === 0;
     }
 }
