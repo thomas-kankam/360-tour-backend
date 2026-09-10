@@ -42,7 +42,7 @@ class AboutCms extends Model
                 'title' => 'Who We Are',
                 'titleLine' => 'Discover Africa.',
                 'titleHighlight' => 'Travel Without Limits.',
-                'description' => 'Welcome to 360 Tours and Investment Limited, where unforgettable travel experiences begin.',
+                'description' => 'Welcome to 360 Tours and Investment Limited, where unforgettable travel experiences begin. We create exciting, safe, and seamless journeys across Ghana and beyond, with guided tours, comfortable stays, and reliable transport under one roof.',
                 'tagline' => 'Explore More. Travel Better. Experience Africa with 360 Tours.',
                 'services' => [
                     ['label' => 'Guided Tours', 'icon' => 'compass'],
@@ -61,14 +61,29 @@ class AboutCms extends Model
                 'motto' => 'Explore. Experience. Remember.',
             ],
             'story' => [
-                'intro' => '',
-                'story' => '',
-                'journey' => '',
-                'commitment' => '',
+                'intro' => 'Welcome to 360 Tours and Investment Limited, your trusted travel partner for unforgettable experiences across Ghana and beyond.',
+                'story' => '360 Tours and Investment Limited is a registered travel and tourism company dedicated to showcasing the very best of Ghana and Africa.',
+                'journey' => 'From Accra to Cape Coast, Akosombo, Kakum, and the Volta Region, we help guests discover Africa from a local perspective.',
+                'commitment' => 'Our goal is to provide personalized travel experiences that leave lasting memories while supporting sustainable tourism and local communities.',
             ],
-            'mission' => ['title' => 'Our Mission', 'text' => ''],
-            'vision' => ['title' => 'Our Vision', 'text' => ''],
-            'values' => [],
+            'mission' => [
+                'title' => 'Our Mission',
+                'text' => 'To deliver exceptional travel experiences through quality service, professionalism, and authentic cultural connections while promoting sustainable tourism throughout Ghana and Africa.',
+            ],
+            'vision' => [
+                'title' => 'Our Vision',
+                'text' => 'To become Africa\'s leading travel and tourism company by inspiring travelers to explore the continent through unforgettable experiences, outstanding service, and innovative travel solutions.',
+            ],
+            'values' => [
+                'Excellence',
+                'Integrity',
+                'Customer Satisfaction',
+                'Safety',
+                'Professionalism',
+                'Sustainability',
+                'Innovation',
+                'Reliability',
+            ],
             'tourServices' => [],
             'supportServices' => [],
             'popularDestinations' => [],
@@ -76,13 +91,20 @@ class AboutCms extends Model
             'faqs' => [],
             'cta' => [
                 'title' => 'Your Adventure Begins Here',
-                'subtitle' => '',
+                'subtitle' => 'Ready to discover the beauty, history, and culture of Ghana? Book your next unforgettable journey with 360 Tours and Investment Limited.',
                 'primaryLabel' => 'Contact us',
                 'primaryTo' => '/contact',
                 'secondaryLabel' => 'Browse tours',
                 'secondaryTo' => '/tours',
             ],
-            'teaser' => [],
+            'teaser' => [
+                'eyebrow' => 'About Us',
+                'title' => 'Who We Are',
+                'tagline' => 'Discover Africa. Travel Without Limits.',
+                'subtitle' => 'Your trusted travel partner for tours, accommodation & transportation',
+                'summary' => '360 Tours and Investment Limited is a registered travel and tourism company dedicated to showcasing the very best of Ghana and Africa.',
+                'extended' => 'From Accra to Cape Coast, Akosombo to the Volta Region, we help travelers discover Africa from a local perspective.',
+            ],
         ];
     }
 
@@ -113,12 +135,26 @@ class AboutCms extends Model
             $sectionContent = $content[$section] ?? null;
 
             if (is_array($fields) && array_is_list($fields)) {
-                $merged[$section] = is_array($sectionContent) ? $sectionContent : $fields;
+                // Empty list from draft means "unset" — keep the seeded About page defaults.
+                $merged[$section] = (is_array($sectionContent) && count($sectionContent) > 0)
+                    ? $sectionContent
+                    : $fields;
                 continue;
             }
 
             if (is_array($fields)) {
-                $merged[$section] = array_merge($fields, is_array($sectionContent) ? $sectionContent : []);
+                $mergedSection = array_merge($fields, is_array($sectionContent) ? $sectionContent : []);
+                foreach ($fields as $key => $defaultValue) {
+                    if (is_string($defaultValue)
+                        && array_key_exists($key, $mergedSection)
+                        && is_string($mergedSection[$key])
+                        && trim($mergedSection[$key]) === ''
+                        && trim((string) $defaultValue) !== ''
+                    ) {
+                        $mergedSection[$key] = $defaultValue;
+                    }
+                }
+                $merged[$section] = $mergedSection;
                 continue;
             }
 
