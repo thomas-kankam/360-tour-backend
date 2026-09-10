@@ -27,9 +27,29 @@ class ClientInvoiceRequestController extends Controller
             )
             ->latest();
 
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
         $paginator = self::paginateQuery($request, $query, 20);
 
         return self::paginatedApiResponse('Requests retrieved', $paginator, fn (InvoiceRequest $item) => $item->toRequestArray());
+    }
+
+    public function show(Request $request, InvoiceRequest $invoiceRequest): JsonResponse
+    {
+        $client = $request->user();
+        $slug = trim((string) ($client->client_slug ?? ''));
+
+        if ($slug === '' || $invoiceRequest->client_slug !== $slug) {
+            return self::apiResponse(true, 'Not Found', '404', 'Request not found', []);
+        }
+
+        return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Request retrieved', $invoiceRequest->toRequestArray());
     }
 
     public function store(Request $request): JsonResponse

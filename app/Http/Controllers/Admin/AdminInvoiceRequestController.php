@@ -8,6 +8,8 @@ use App\Models\UserNotification;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class AdminInvoiceRequestController extends Controller
 {
@@ -45,20 +47,41 @@ class AdminInvoiceRequestController extends Controller
             'admin_response' => 'required|string|max:5000',
             'invoice_uuid' => 'nullable|string|exists:invoices,invoice_uuid',
             'status' => 'nullable|in:responded,closed',
+            'attachment' => 'nullable|file|mimes:pdf,doc,docx,png,jpg,jpeg,webp|max:10240',
         ]);
 
-        $invoiceRequest->update([
+        $updates = [
             'admin_response' => $data['admin_response'],
             'invoice_uuid' => $data['invoice_uuid'] ?? $invoiceRequest->invoice_uuid,
             'admin_slug' => $admin->admin_slug,
             'status' => $data['status'] ?? 'responded',
-        ]);
+        ];
 
-        $invoiceUuid = $data['invoice_uuid'] ?? $invoiceRequest->invoice_uuid;
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $extension = strtolower($file->getClientOriginalExtension() ?: 'pdf');
+            $fileName = Str::uuid() . '.' . $extension;
+            $storedPath = Storage::disk('public')->putFileAs('uploads/quote-attachments', $file, $fileName);
+
+            if ($invoiceRequest->attachment_path) {
+                $old = ltrim(str_replace('\\', '/', (string) $invoiceRequest->attachment_path), '/');
+                if (str_starts_with($old, 'storage/')) {
+                    $old = substr($old, strlen('storage/'));
+                }
+                if ($old !== '' && Storage::disk('public')->exists($old)) {
+                    Storage::disk('public')->delete($old);
+                }
+            }
+
+            $updates['attachment_path'] = $storedPath ?: null;
+            $updates['attachment_name'] = $file->getClientOriginalName() ?: $fileName;
+        }
+
+        $invoiceRequest->update($updates);
+
+        $invoiceUuid = $updates['invoice_uuid'] ?? null;
         $clientUrl = NotificationService::clientBaseUrl();
-        $actionUrl = $invoiceUuid
-            ? $clientUrl . '/my-invoices/' . $invoiceUuid
-            : $clientUrl . '/my-invoices';
+        $actionUrl = $clientUrl . '/my-invoices/requests/' . $invoiceRequest->request_uuid;
 
         $this->notifications->notifyClient(
             clientSlug: $invoiceRequest->client_slug,
@@ -71,9 +94,16 @@ class AdminInvoiceRequestController extends Controller
             meta: [
                 'request_uuid' => $invoiceRequest->request_uuid,
                 'invoice_uuid' => $invoiceUuid,
+                'has_attachment' => filled($invoiceRequest->fresh()->attachment_path),
             ],
         );
 
-        return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Response sent to client', $invoiceRequest->fresh()->toRequestArray(includeClient: true));
+        return self::apiResponse(
+            false,
+            'Action Successful',
+            (string) self::API_SUCCESS,
+            'Response sent to client',
+            $invoiceRequest->fresh()->load('client')->toRequestArray(includeClient: true),
+        );
     }
 }

@@ -95,6 +95,7 @@ Route::prefix('client')->group(function () {
         Route::get('invoices/{invoice}', [ClientInvoiceController::class, 'show']);
 
         Route::get('invoice-requests', [ClientInvoiceRequestController::class, 'index']);
+        Route::get('invoice-requests/{invoiceRequest}', [ClientInvoiceRequestController::class, 'show']);
         Route::post('invoice-requests', [ClientInvoiceRequestController::class, 'store']);
     });
 });
@@ -220,7 +221,7 @@ Route::prefix('admin')->group(function () {
         Route::middleware('admin.permission:invoice_management')->group(function () {
             Route::get('invoice-requests', [AdminInvoiceRequestController::class, 'index']);
             Route::get('invoice-requests/{invoiceRequest}', [AdminInvoiceRequestController::class, 'show']);
-            Route::patch('invoice-requests/{invoiceRequest}/respond', [AdminInvoiceRequestController::class, 'respond']);
+            Route::match(['patch', 'post'], 'invoice-requests/{invoiceRequest}/respond', [AdminInvoiceRequestController::class, 'respond']);
         });
     });
 });

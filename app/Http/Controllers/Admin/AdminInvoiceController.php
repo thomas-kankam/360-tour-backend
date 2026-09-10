@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendInvoiceEmailJob;
+use App\Models\Client;
 use App\Models\CompanySetting;
 use App\Models\Invoice;
 use App\Services\InvoiceNumberService;
@@ -90,15 +91,17 @@ class AdminInvoiceController extends Controller
             'message' => 'nullable|string|max:5000',
         ]);
 
+        $clientSlug = $data['client_slug'] ?? null;
+        if (! $clientSlug) {
+            $clientSlug = Client::query()->where('email', $data['email'])->value('client_slug');
+        }
+
         $updates = [
             'last_sent_to_email' => $data['email'],
             'sent_at' => now(),
             'billed_to_email' => $data['email'],
+            'client_slug' => $clientSlug,
         ];
-
-        if (! empty($data['client_slug'])) {
-            $updates['client_slug'] = $data['client_slug'];
-        }
 
         $invoice->update($updates);
 
@@ -116,6 +119,7 @@ class AdminInvoiceController extends Controller
         return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Invoice email queued', [
             'invoice_number' => $invoice->invoice_number,
             'email' => $data['email'],
+            'is_external' => empty($clientSlug),
         ]);
     }
 

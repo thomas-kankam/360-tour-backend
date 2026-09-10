@@ -12,7 +12,21 @@ class AdminClientController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $paginator = self::paginateQuery($request, Client::query()->latest());
+        $query = Client::query()->latest();
+
+        if ($request->filled('search')) {
+            $term = '%' . trim((string) $request->input('search')) . '%';
+            $query->where(function ($builder) use ($term) {
+                $builder
+                    ->where('first_name', 'like', $term)
+                    ->orWhere('last_name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('phone_number', 'like', $term)
+                    ->orWhereRaw("CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) like ?", [$term]);
+            });
+        }
+
+        $paginator = self::paginateQuery($request, $query, (int) $request->input('limit', 15));
 
         return self::paginatedApiResponse('Clients retrieved', $paginator, fn (Client $client) => $client->toArray());
     }
