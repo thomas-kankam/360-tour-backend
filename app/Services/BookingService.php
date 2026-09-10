@@ -49,6 +49,7 @@ class BookingService
             'tour_slug' => $tour->tour_slug,
             'booking_type' => $bookingType,
             'selected_date' => $payload['selectedDate'] ?? $payload['selected_date'],
+            'selected_end_date' => $payload['selectedEndDate'] ?? $payload['selected_end_date'] ?? null,
             'travelers' => $travelers,
             'payment_mode' => $paymentMode,
             'payment_status' => $paymentMode === 'online' ? 'pending' : 'onsite',
@@ -104,6 +105,7 @@ class BookingService
         $updates = array_filter([
             'booking_type' => $bookingType !== $booking->booking_type ? $bookingType : null,
             'selected_date' => $payload['selected_date'] ?? $payload['selectedDate'] ?? null,
+            'selected_end_date' => $payload['selected_end_date'] ?? $payload['selectedEndDate'] ?? null,
             'travelers' => isset($payload['travelers']) ? $travelers : null,
             'lead_traveler' => $payload['leadTraveler'] ?? $payload['lead_traveler'] ?? null,
             'special_requests' => $payload['specialRequests'] ?? $payload['special_requests'] ?? null,

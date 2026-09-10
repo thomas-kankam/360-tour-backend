@@ -11,6 +11,7 @@ class ClientBookingRules
         return array_merge(SharedBookingRules::commonRules(required: true), SharedBookingRules::typeRules($bookingType, required: true), [
             'tourSlug' => 'required|string|exists:tours,tour_slug',
             'selectedDate' => 'required|date',
+            'selectedEndDate' => 'nullable|date|after_or_equal:selectedDate',
             'paymentMode' => 'required|in:online,onsite',
             'amount' => 'required|numeric|min:0',
             'clientSlug' => 'nullable|string|exists:clients,client_slug',
@@ -22,6 +23,8 @@ class ClientBookingRules
         return array_merge(SharedBookingRules::commonRules(required: false), SharedBookingRules::typeRules($bookingType, required: false), [
             'selectedDate' => 'sometimes|date',
             'selected_date' => 'sometimes|date',
+            'selectedEndDate' => 'nullable|date|after_or_equal:selectedDate',
+            'selected_end_date' => 'nullable|date',
             'paymentMode' => 'sometimes|in:online,onsite',
             'amount' => 'required_if:paymentMode,online|nullable|numeric|min:0',
             'special_requests' => 'nullable|string',

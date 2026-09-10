@@ -20,6 +20,7 @@ class Booking extends Model
         'tour_slug',
         'booking_type',
         'selected_date',
+        'selected_end_date',
         'travelers',
         'payment_mode',
         'payment_status',
@@ -37,6 +38,7 @@ class Booking extends Model
 
     protected $casts = [
         'selected_date' => 'date',
+        'selected_end_date' => 'date',
         'lead_traveler' => 'array',
         'group_details' => 'array',
         'additional_travelers' => 'array',
@@ -78,6 +80,7 @@ class Booking extends Model
             'bookingType' => $this->booking_type,
             'tourSlug' => $this->tour_slug,
             'selectedDate' => $this->selected_date?->format('Y-m-d'),
+            'selectedEndDate' => $this->selected_end_date?->format('Y-m-d'),
             'travelers' => $this->travelers,
             'paymentMode' => $this->payment_mode,
             'paymentStatus' => $this->payment_status,

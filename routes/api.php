@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminInvoiceController;
 use App\Http\Controllers\Admin\AdminInvoiceRequestController;
 use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\AdminLandingCmsController;
+use App\Http\Controllers\Admin\AdminAboutCmsController;
 use App\Http\Controllers\Admin\AdminListingController;
 use App\Http\Controllers\Admin\AdminExperienceController;
 use App\Http\Controllers\Admin\AdminStoryController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\Client\ClientRatingController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ExperienceController;
 use App\Http\Controllers\LandingCmsController;
+use App\Http\Controllers\AboutCmsController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\StoryController;
@@ -44,6 +46,7 @@ Route::get('listings/{listing}', [ListingController::class, 'show']);
 Route::get('sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index']);
 Route::post('contacts', [ContactController::class, 'store']);
 Route::get('landing-cms', [LandingCmsController::class, 'show']);
+Route::get('about-cms', [AboutCmsController::class, 'show']);
 Route::get('stories', [StoryController::class, 'index']);
 Route::get('stories/{slug}', [StoryController::class, 'show']);
 Route::get('experiences', [ExperienceController::class, 'index']);
@@ -183,6 +186,11 @@ Route::prefix('admin')->group(function () {
             Route::put('landing-cms', [AdminLandingCmsController::class, 'updateDraft']);
             Route::post('landing-cms/publish', [AdminLandingCmsController::class, 'publish']);
             Route::post('landing-cms/reset', [AdminLandingCmsController::class, 'reset']);
+
+            Route::get('about-cms', [AdminAboutCmsController::class, 'show']);
+            Route::put('about-cms', [AdminAboutCmsController::class, 'updateDraft']);
+            Route::post('about-cms/publish', [AdminAboutCmsController::class, 'publish']);
+            Route::post('about-cms/reset', [AdminAboutCmsController::class, 'reset']);
 
             Route::get('stories', [AdminStoryController::class, 'index']);
             Route::post('stories', [AdminStoryController::class, 'store']);
