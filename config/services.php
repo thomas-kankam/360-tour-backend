@@ -36,6 +36,12 @@ return [
         'public_key' => env('PAYSTACK_PUBLIC_KEY'),
         'callback_url' => env('PAYSTACK_CALLBACK_URL', env('APP_URL').'/api/payment/callback'),
         'webhook_url' => env('PAYSTACK_WEBHOOK_URL', env('APP_URL').'/api/payment/webhook'),
+        // Ghana merchants accept GHS by default. Add USD only after enabling it on Paystack.
+        'default_currency' => strtoupper((string) env('PAYSTACK_DEFAULT_CURRENCY', 'GHS')),
+        'supported_currencies' => array_values(array_filter(array_map(
+            fn ($code) => strtoupper(trim((string) $code)),
+            explode(',', (string) env('PAYSTACK_SUPPORTED_CURRENCIES', 'GHS'))
+        ))),
     ],
 
     'sms' => [

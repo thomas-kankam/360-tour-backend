@@ -6,6 +6,7 @@ use App\Exceptions\BookingAmountMismatchException;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Tour;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -30,6 +31,7 @@ class BookingService
             throw new \RuntimeException('This tour is not available for booking.');
         }
 
+        $currency = $this->paystack->normalizeCurrency($currency ?: $tour->price_currency);
         $amount = $this->calculateAmount(
             $tour,
             $travelers,
@@ -41,35 +43,50 @@ class BookingService
             throw new BookingAmountMismatchException();
         }
 
-        $booking = Booking::create([
-            'booking_code' => '360TG_' . Str::upper(Str::random(6)),
-            'client_slug' => $clientSlug,
-            'booked_by_type' => $bookedByType,
-            'booked_by_slug' => $bookedBySlug,
-            'tour_slug' => $tour->tour_slug,
-            'booking_type' => $bookingType,
-            'selected_date' => $payload['selectedDate'] ?? $payload['selected_date'],
-            'selected_end_date' => $payload['selectedEndDate'] ?? $payload['selected_end_date'] ?? null,
-            'travelers' => $travelers,
-            'payment_mode' => $paymentMode,
-            'payment_status' => $paymentMode === 'online' ? 'pending' : 'onsite',
-            'amount' => $amount,
-            'currency' => strtoupper((string) ($currency ?: $tour->price_currency ?: 'GHS')),
-            'lead_traveler' => $payload['leadTraveler'] ?? $payload['lead_traveler'] ?? [],
-            'group_details' => $payload['groupDetails'] ?? $payload['group_details'] ?? null,
-            'special_requests' => $payload['specialRequests'] ?? $payload['special_requests'] ?? null,
-            'dietary_needs' => $payload['dietaryNeeds'] ?? $payload['dietary_needs'] ?? null,
-            'additional_travelers' => $payload['additionalTravelers'] ?? $payload['additional_travelers'] ?? [],
-            'status' => 'pending',
-            'admin_slug' => $bookedByType === 'admin' ? $bookedBySlug : $tour->admin_slug,
-            'created_by_admin_slug' => $bookedByType === 'admin' ? $bookedBySlug : null,
-        ]);
+        [$booking, $paymentUrl] = DB::transaction(function () use (
+            $payload,
+            $bookedByType,
+            $bookedBySlug,
+            $clientSlug,
+            $tour,
+            $bookingType,
+            $travelers,
+            $paymentMode,
+            $amount,
+            $currency,
+        ) {
+            $booking = Booking::create([
+                'booking_code' => '360TG_' . Str::upper(Str::random(6)),
+                'client_slug' => $clientSlug,
+                'booked_by_type' => $bookedByType,
+                'booked_by_slug' => $bookedBySlug,
+                'tour_slug' => $tour->tour_slug,
+                'booking_type' => $bookingType,
+                'selected_date' => $payload['selectedDate'] ?? $payload['selected_date'],
+                'selected_end_date' => $payload['selectedEndDate'] ?? $payload['selected_end_date'] ?? null,
+                'travelers' => $travelers,
+                'payment_mode' => $paymentMode,
+                'payment_status' => $paymentMode === 'online' ? 'pending' : 'onsite',
+                'amount' => $amount,
+                'currency' => $currency,
+                'lead_traveler' => $payload['leadTraveler'] ?? $payload['lead_traveler'] ?? [],
+                'group_details' => $payload['groupDetails'] ?? $payload['group_details'] ?? null,
+                'special_requests' => $payload['specialRequests'] ?? $payload['special_requests'] ?? null,
+                'dietary_needs' => $payload['dietaryNeeds'] ?? $payload['dietary_needs'] ?? null,
+                'additional_travelers' => $payload['additionalTravelers'] ?? $payload['additional_travelers'] ?? [],
+                'status' => 'pending',
+                'admin_slug' => $bookedByType === 'admin' ? $bookedBySlug : $tour->admin_slug,
+                'created_by_admin_slug' => $bookedByType === 'admin' ? $bookedBySlug : null,
+            ]);
 
-        $paymentUrl = null;
+            $paymentUrl = null;
 
-        if ($paymentMode === 'online') {
-            $paymentUrl = $this->initializeOnlinePayment($booking, $tour, $amount);
-        }
+            if ($paymentMode === 'online') {
+                $paymentUrl = $this->initializeOnlinePayment($booking, $tour, $amount);
+            }
+
+            return [$booking, $paymentUrl];
+        });
 
         $booking->load('tour');
 
@@ -241,15 +258,17 @@ class BookingService
 
     protected function initializeOnlinePayment(Booking $booking, Tour $tour, float $amount): string
     {
-        $initialized = $this->initializePaystackTransaction($booking, $tour, $amount);
+        $charge = $this->resolvePaystackCharge($tour, (int) $booking->travelers, $amount, $booking->currency);
+        $this->syncBookingCharge($booking, $charge);
+        $initialized = $this->initializePaystackTransaction($booking, $tour, $charge);
 
         Payment::create([
             'payment_slug' => (string) Str::uuid(),
             'booking_code' => $booking->booking_code,
             'paystack_reference' => $initialized['reference'],
             'paystack_access_code' => $initialized['access_code'],
-            'amount' => $amount,
-            'currency' => $tour->price_currency,
+            'amount' => $charge['amount'],
+            'currency' => $charge['currency'],
             'status' => 'pending',
             'payment_url' => $initialized['authorization_url'],
             'paystack_response' => $initialized['raw'],
@@ -260,13 +279,15 @@ class BookingService
 
     protected function reinitializeOnlinePayment(Payment $payment, Booking $booking, Tour $tour, float $amount): string
     {
-        $initialized = $this->initializePaystackTransaction($booking, $tour, $amount);
+        $charge = $this->resolvePaystackCharge($tour, (int) $booking->travelers, $amount, $booking->currency);
+        $this->syncBookingCharge($booking, $charge);
+        $initialized = $this->initializePaystackTransaction($booking, $tour, $charge);
 
         $payment->update([
             'paystack_reference' => $initialized['reference'],
             'paystack_access_code' => $initialized['access_code'],
-            'amount' => $amount,
-            'currency' => $tour->price_currency,
+            'amount' => $charge['amount'],
+            'currency' => $charge['currency'],
             'status' => 'pending',
             'payment_url' => $initialized['authorization_url'],
             'paystack_response' => $initialized['raw'],
@@ -276,22 +297,117 @@ class BookingService
         return $initialized['authorization_url'];
     }
 
-    protected function initializePaystackTransaction(Booking $booking, Tour $tour, float $amount): array
+    protected function initializePaystackTransaction(Booking $booking, Tour $tour, array $charge): array
     {
         $email = $booking->lead_traveler['email'] ?? 'customer@360toursghana.com';
         $initialized = $this->paystack->initializeTransaction(
             email: $email,
-            amount: $amount,
-            currency: $tour->price_currency,
+            amount: $charge['amount'],
+            currency: $charge['currency'],
             metadata: [
                 'booking_code' => $booking->booking_code,
                 'tour_slug' => $tour->tour_slug,
             ]
         );
 
-        Log::info('Paystack initialized', ['initialized' => $initialized]);
+        Log::info('Paystack initialized', [
+            'initialized' => $initialized,
+            'currency' => $charge['currency'],
+            'amount' => $charge['amount'],
+        ]);
 
         return $initialized;
+    }
+
+    protected function resolvePaystackCharge(Tour $tour, int $travelers, ?float $quotedAmount, ?string $requestedCurrency): array
+    {
+        $requested = $this->paystack->normalizeCurrency($requestedCurrency ?: $tour->price_currency);
+        $currency = $this->paystack->resolveChargeCurrency($requested);
+
+        if ($currency !== $requested && ! $this->tourHasPriceInCurrency($tour, $currency)) {
+            throw new \RuntimeException(
+                'Online payment is not available in ' . $requested . '. Add a ' . $currency . ' price for this tour, or enable ' . $requested . ' on Paystack.'
+            );
+        }
+
+        if ($currency !== $requested) {
+            Log::info('Paystack currency fallback', [
+                'from' => $requested,
+                'to' => $currency,
+                'tour_slug' => $tour->tour_slug,
+            ]);
+        }
+
+        return [
+            'amount' => $this->amountForCurrency($tour, $travelers, $quotedAmount, $requested, $currency),
+            'currency' => $currency,
+        ];
+    }
+
+    protected function syncBookingCharge(Booking $booking, array $charge): void
+    {
+        if (
+            $this->paystack->normalizeCurrency($booking->currency) === $charge['currency']
+            && round((float) $booking->amount, 2) === round($charge['amount'], 2)
+        ) {
+            return;
+        }
+
+        $booking->update([
+            'amount' => $charge['amount'],
+            'currency' => $charge['currency'],
+        ]);
+    }
+
+    protected function amountForCurrency(
+        Tour $tour,
+        int $travelers,
+        ?float $quotedAmount,
+        string $quotedCurrency,
+        string $chargeCurrency
+    ): float {
+        if ($chargeCurrency === $quotedCurrency) {
+            return $this->calculateAmount($tour, $travelers, $quotedAmount, $chargeCurrency);
+        }
+
+        $quotedFull = $this->fullAmount($tour, $travelers, $quotedCurrency);
+        $quotedDeposit = $this->depositAmount($tour, $travelers, $quotedCurrency);
+        $quoted = $quotedAmount !== null ? round($quotedAmount, 2) : $quotedFull;
+        $isDeposit = $quoted === $quotedDeposit && $quotedDeposit !== $quotedFull;
+
+        return $isDeposit
+            ? $this->depositAmount($tour, $travelers, $chargeCurrency)
+            : $this->fullAmount($tour, $travelers, $chargeCurrency);
+    }
+
+    protected function fullAmount(Tour $tour, int $travelers, string $currency): float
+    {
+        return round($this->resolveTourUnitPrice($tour, $currency) * $travelers, 2);
+    }
+
+    protected function depositAmount(Tour $tour, int $travelers, string $currency): float
+    {
+        $settings = $tour->booking_settings ?? [];
+        $depositPercent = max(1, min(100, (int) ($settings['depositPercent'] ?? 100)));
+
+        return round($this->fullAmount($tour, $travelers, $currency) * ($depositPercent / 100), 2);
+    }
+
+    protected function tourHasPriceInCurrency(Tour $tour, string $currency): bool
+    {
+        $currency = $this->paystack->normalizeCurrency($currency);
+
+        if ($currency === 'USD') {
+            return (float) ($tour->price_amount_usd ?? 0) > 0
+                || ($this->paystack->normalizeCurrency($tour->price_currency) === 'USD' && (float) $tour->price_amount > 0);
+        }
+
+        if ($currency === 'GHS') {
+            return (float) ($tour->price_amount_ghs ?? 0) > 0
+                || ($this->paystack->normalizeCurrency($tour->price_currency) === 'GHS' && (float) $tour->price_amount > 0);
+        }
+
+        return $this->resolveTourUnitPrice($tour, $currency) > 0;
     }
 
     public function markPaidByReference(string $reference, array $paystackData): void
@@ -364,13 +480,10 @@ class BookingService
             throw new \RuntimeException('This payment cannot be retried.');
         }
 
-        $amount = $this->calculateAmount($booking->tour, (int) $booking->travelers);
-
-        $this->reinitializeOnlinePayment($payment, $booking, $booking->tour, $amount);
+        $this->reinitializeOnlinePayment($payment, $booking, $booking->tour, (float) $booking->amount);
 
         $booking->update([
             'payment_status' => 'pending',
-            'amount' => $amount,
         ]);
 
         return $payment->fresh(['booking.tour'])->toPaymentArray();
@@ -442,12 +555,9 @@ class BookingService
 
     protected function calculateAmount(Tour $tour, int $travelers, ?float $providedAmount = null, ?string $currency = null): float
     {
-        $currency = strtoupper(trim((string) ($currency ?: $tour->price_currency ?: 'GHS')));
-        $unitPrice = $this->resolveTourUnitPrice($tour, $currency);
-        $base = round($unitPrice * $travelers, 2);
-        $settings = $tour->booking_settings ?? [];
-        $depositPercent = max(1, min(100, (int) ($settings['depositPercent'] ?? 100)));
-        $depositAmount = round($base * ($depositPercent / 100), 2);
+        $currency = $this->paystack->normalizeCurrency($currency ?: $tour->price_currency);
+        $base = $this->fullAmount($tour, $travelers, $currency);
+        $depositAmount = $this->depositAmount($tour, $travelers, $currency);
 
         if ($providedAmount !== null) {
             $provided = round((float) $providedAmount, 2);
@@ -461,7 +571,7 @@ class BookingService
 
     protected function resolveTourUnitPrice(Tour $tour, ?string $currency = null): float
     {
-        $currency = strtoupper(trim((string) ($currency ?: $tour->price_currency ?: 'GHS')));
+        $currency = $this->paystack->normalizeCurrency($currency ?: $tour->price_currency);
 
         if ($currency === 'USD') {
             $usd = (float) ($tour->price_amount_usd ?? 0);

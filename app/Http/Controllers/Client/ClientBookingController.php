@@ -54,6 +54,8 @@ class ClientBookingController extends Controller
             );
         } catch (BookingAmountMismatchException $e) {
             return self::apiResponse(true, 'Action Unsuccessful', (string) self::API_BAD_REQUEST, $e->getMessage(), []);
+        } catch (\RuntimeException $e) {
+            return self::apiResponse(true, 'Action Unsuccessful', (string) self::API_FAIL, $e->getMessage(), []);
         }
 
         return self::apiResponse(false, 'Action Successful', (string) self::API_CREATED, 'Booking submitted', $result);
