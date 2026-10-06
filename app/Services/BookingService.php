@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\BookingAmountMismatchException;
 use App\Models\Booking;
+use App\Models\InvoiceRequest;
 use App\Models\Payment;
 use App\Models\Tour;
 use Illuminate\Support\Facades\DB;
@@ -89,6 +90,10 @@ class BookingService
         });
 
         $booking->load('tour');
+
+        if ($bookedByType === 'client' && $clientSlug) {
+            $this->syncBookingHistoryRequest($booking, 'pending');
+        }
 
         $this->notifications->notifyBookingCreated($booking);
 
@@ -245,9 +250,67 @@ class BookingService
         ]);
 
         $booking->load('tour');
+        $this->syncBookingHistoryRequest(
+            $booking,
+            'completed',
+            'Payment received. This booking request is completed.',
+        );
         $this->notifications->notifyPaymentSuccess($booking);
 
         return $booking->toBookingArray();
+    }
+
+    protected function syncBookingHistoryRequest(Booking $booking, string $status, ?string $adminResponse = null): void
+    {
+        if (! $booking->client_slug || ! $booking->booking_code) {
+            return;
+        }
+
+        $lead = is_array($booking->lead_traveler) ? $booking->lead_traveler : [];
+        $tourName = $booking->tour?->name ?? $booking->tour_slug;
+        $start = $booking->selected_date?->format('M j, Y') ?? '—';
+        $end = $booking->selected_end_date?->format('M j, Y');
+        $dates = $end ? "{$start} – {$end}" : $start;
+        $name = trim(($lead['firstName'] ?? '') . ' ' . ($lead['lastName'] ?? ''));
+
+        $lines = array_filter([
+            'Tour booking request',
+            'Tour: ' . $tourName,
+            'Booking code: ' . $booking->booking_code,
+            'Guest: ' . ($name !== '' ? $name : '—'),
+            'Email: ' . ($lead['email'] ?? '—'),
+            'Phone: ' . ($lead['phone'] ?? '—'),
+            'WhatsApp: ' . ($lead['whatsapp'] ?? '—'),
+            'Country: ' . ($lead['country'] ?? $lead['nationality'] ?? '—') . (! empty($lead['dialCode']) ? ' (' . $lead['dialCode'] . ')' : ''),
+            'Preferred dates: ' . $dates,
+            'Adults: ' . (int) ($lead['adults'] ?? $booking->travelers ?? 1),
+            'Children: ' . (int) ($lead['children'] ?? 0),
+            filled($booking->special_requests) ? 'Notes: ' . $booking->special_requests : null,
+        ]);
+
+        $record = InvoiceRequest::query()->where('booking_code', $booking->booking_code)->first();
+        $payload = [
+            'client_slug' => $booking->client_slug,
+            'type' => 'booking',
+            'message' => implode("\n", $lines),
+            'status' => $status,
+            'booking_code' => $booking->booking_code,
+        ];
+
+        if ($adminResponse !== null) {
+            $payload['admin_response'] = $adminResponse;
+        }
+
+        if ($record) {
+            $record->update($payload);
+
+            return;
+        }
+
+        InvoiceRequest::create([
+            'request_uuid' => (string) Str::uuid(),
+            ...$payload,
+        ]);
     }
 
     protected function hasBookingDetailChanges(array $payload): bool

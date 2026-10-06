@@ -83,12 +83,20 @@ class AdminInvoiceRequestController extends Controller
         $clientUrl = NotificationService::clientBaseUrl();
         $actionUrl = $clientUrl . '/my-invoices/requests/' . $invoiceRequest->request_uuid;
 
+        $type = $invoiceRequest->type;
+        $title = match ($type) {
+            'quote' => 'Your quote request was answered',
+            'booking' => 'Your booking request was updated',
+            default => 'Your invoice request was answered',
+        };
+        $notificationType = $type === 'quote'
+            ? UserNotification::TYPE_QUOTE_REQUEST_RESPONSE
+            : UserNotification::TYPE_INVOICE_REQUEST_RESPONSE;
+
         $this->notifications->notifyClient(
             clientSlug: $invoiceRequest->client_slug,
-            type: $invoiceRequest->type === 'quote'
-                ? UserNotification::TYPE_QUOTE_REQUEST_RESPONSE
-                : UserNotification::TYPE_INVOICE_REQUEST_RESPONSE,
-            title: $invoiceRequest->type === 'quote' ? 'Your quote request was answered' : 'Your invoice request was answered',
+            type: $notificationType,
+            title: $title,
             body: $data['admin_response'],
             actionUrl: $actionUrl,
             meta: [

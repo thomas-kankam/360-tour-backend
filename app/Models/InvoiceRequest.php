@@ -23,6 +23,7 @@ class InvoiceRequest extends Model
         'attachment_path',
         'attachment_name',
         'invoice_uuid',
+        'booking_code',
         'admin_slug',
     ];
 
@@ -76,6 +77,7 @@ class InvoiceRequest extends Model
             'attachment_name' => $this->attachment_name,
             'has_attachment' => filled($this->attachment_path),
             'invoice_uuid' => $this->invoice_uuid,
+            'booking_code' => $this->booking_code,
             'client_slug' => $this->client_slug,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
