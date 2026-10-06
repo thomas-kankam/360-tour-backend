@@ -47,11 +47,18 @@ class SendBookingNotificationJob implements ShouldQueue
         }
 
         if (in_array('admin', $this->recipients, true)) {
-            $admin = $booking->admin_slug
-                ? Admin::query()->where('admin_slug', $booking->admin_slug)->first()
-                : null;
+            $admins = Admin::query()->where('status', 'active')->get();
 
-            $this->notifyActor($smsService, $notifications, $admin, $booking, 'admin');
+            if ($admins->isEmpty() && $booking->admin_slug) {
+                $fallback = Admin::query()->where('admin_slug', $booking->admin_slug)->first();
+                if ($fallback) {
+                    $admins = collect([$fallback]);
+                }
+            }
+
+            foreach ($admins as $admin) {
+                $this->notifyActor($smsService, $notifications, $admin, $booking, 'admin');
+            }
         }
     }
 
@@ -161,9 +168,9 @@ class SendBookingNotificationJob implements ShouldQueue
                         $actionUrl,
                     ]
                     : [
-                        'New booking received',
-                        "A client placed booking {$bookingCode} for {$tourName} on {$selectedDate}.",
-                        "New 360 Tours Ghana booking {$bookingCode} for {$tourName} on {$selectedDate}.",
+                        'New booking request',
+                        $this->clientRequestSummary($booking, $tourName, $selectedDate),
+                        "New 360 Tours Ghana booking request {$bookingCode} for {$tourName} on {$selectedDate}.",
                         $actionUrl,
                     ],
                 default => $booking->booked_by_type === 'admin'
@@ -229,5 +236,22 @@ class SendBookingNotificationJob implements ShouldQueue
                 $actionUrl,
             ],
         };
+    }
+
+    protected function clientRequestSummary(Booking $booking, string $tourName, string $selectedDate): string
+    {
+        $lead = is_array($booking->lead_traveler) ? $booking->lead_traveler : [];
+        $name = trim(($lead['firstName'] ?? '') . ' ' . ($lead['lastName'] ?? '')) ?: 'A guest';
+        $adults = (int) ($lead['adults'] ?? $booking->travelers ?? 1);
+        $children = (int) ($lead['children'] ?? 0);
+        $country = $lead['country'] ?? '—';
+        $phone = $lead['phone'] ?? '—';
+        $whatsapp = $lead['whatsapp'] ?? '—';
+        $email = $lead['email'] ?? '—';
+
+        return "{$name} requested {$tourName} on {$selectedDate}. "
+            . "Adults: {$adults}, children: {$children}. Country: {$country}. "
+            . "Email: {$email}. Phone: {$phone}. WhatsApp: {$whatsapp}. "
+            . "Booking {$booking->booking_code} is waiting for offline payment, then mark it completed.";
     }
 }

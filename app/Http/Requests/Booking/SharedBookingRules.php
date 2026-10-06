@@ -15,6 +15,12 @@ class SharedBookingRules
             'leadTraveler.lastName' => $rule . '|string|max:255',
             'leadTraveler.email' => $rule . '|email',
             'leadTraveler.phone' => 'nullable|string|max:50',
+            'leadTraveler.whatsapp' => 'nullable|string|max:50',
+            'leadTraveler.country' => 'nullable|string|max:255',
+            'leadTraveler.countryCode' => 'nullable|string|max:10',
+            'leadTraveler.dialCode' => 'nullable|string|max:10',
+            'leadTraveler.adults' => 'nullable|integer|min:1|max:99',
+            'leadTraveler.children' => 'nullable|integer|min:0|max:99',
             'leadTraveler.nationality' => 'nullable|string|max:255',
             'specialRequests' => 'nullable|string',
             'dietaryNeeds' => 'nullable|string',
@@ -25,7 +31,7 @@ class SharedBookingRules
     {
         if ($bookingType === 'individual') {
             return [
-                'travelers' => ($required ? 'required' : 'sometimes') . '|integer|in:1',
+                'travelers' => ($required ? 'required' : 'sometimes') . '|integer|min:1|max:99',
                 'groupDetails' => 'prohibited',
                 'group_details' => 'prohibited',
                 'additionalTravelers' => 'prohibited',

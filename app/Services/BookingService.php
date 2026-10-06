@@ -66,7 +66,7 @@ class BookingService
                 'selected_end_date' => $payload['selectedEndDate'] ?? $payload['selected_end_date'] ?? null,
                 'travelers' => $travelers,
                 'payment_mode' => $paymentMode,
-                'payment_status' => $paymentMode === 'online' ? 'pending' : 'onsite',
+                'payment_status' => ($paymentMode === 'online' || $bookedByType === 'client') ? 'pending' : 'onsite',
                 'amount' => $amount,
                 'currency' => $currency,
                 'lead_traveler' => $payload['leadTraveler'] ?? $payload['lead_traveler'] ?? [],
@@ -132,7 +132,6 @@ class BookingService
         if ($bookingType === 'individual') {
             $updates['group_details'] = null;
             $updates['additional_travelers'] = [];
-            $updates['travelers'] = 1;
         } else {
             if (array_key_exists('groupDetails', $payload) || array_key_exists('group_details', $payload)) {
                 $updates['group_details'] = $payload['groupDetails'] ?? $payload['group_details'];
@@ -204,7 +203,6 @@ class BookingService
         if ($bookingType === 'individual') {
             $updates['group_details'] = null;
             $updates['additional_travelers'] = [];
-            $updates['travelers'] = 1;
         } else {
             if (array_key_exists('groupDetails', $payload) || array_key_exists('group_details', $payload)) {
                 $updates['group_details'] = $payload['groupDetails'] ?? $payload['group_details'];
@@ -236,6 +234,20 @@ class BookingService
         $this->notifications->notifyBookingUpdated($booking);
 
         return $booking->toBookingArray($paymentUrl);
+    }
+
+    /** Offline payment received — close the booking request without touching online checkout. */
+    public function markRequestCompleted(Booking $booking): array
+    {
+        $booking->update([
+            'payment_status' => 'paid',
+            'status' => 'completed',
+        ]);
+
+        $booking->load('tour');
+        $this->notifications->notifyPaymentSuccess($booking);
+
+        return $booking->toBookingArray();
     }
 
     protected function hasBookingDetailChanges(array $payload): bool
@@ -544,7 +556,6 @@ class BookingService
             return $payload;
         }
 
-        $payload['travelers'] = 1;
         $payload['groupDetails'] = null;
         $payload['group_details'] = null;
         $payload['additionalTravelers'] = [];

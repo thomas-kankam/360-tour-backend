@@ -99,6 +99,17 @@ class AdminBookingController extends Controller
         return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Booking updated', $result);
     }
 
+    public function complete(Booking $booking): JsonResponse
+    {
+        if (in_array($booking->status, ['completed', 'cancelled'], true) && $booking->payment_status === 'paid') {
+            return self::apiResponse(true, 'Action Unsuccessful', (string) self::API_FAIL, 'This booking is already completed', []);
+        }
+
+        $result = $this->bookingService->markRequestCompleted($booking);
+
+        return self::apiResponse(false, 'Action Successful', (string) self::API_SUCCESS, 'Booking marked as paid and completed', $result);
+    }
+
     public function destroy(Booking $booking): JsonResponse
     {
         if ($booking->booked_by_type !== 'admin') {

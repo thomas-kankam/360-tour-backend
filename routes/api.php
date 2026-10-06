@@ -1,22 +1,23 @@
 <?php
 
+use App\Http\Controllers\AboutCmsController;
+use App\Http\Controllers\Admin\AdminAboutCmsController;
 use App\Http\Controllers\Admin\AdminAuthenticationController;
 use App\Http\Controllers\Admin\AdminBookingController;
 use App\Http\Controllers\Admin\AdminClientController;
 use App\Http\Controllers\Admin\AdminCompanySettingsController;
 use App\Http\Controllers\Admin\AdminContactController;
+use App\Http\Controllers\Admin\AdminExperienceController;
 use App\Http\Controllers\Admin\AdminInvoiceController;
 use App\Http\Controllers\Admin\AdminInvoiceRequestController;
-use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\AdminLandingCmsController;
-use App\Http\Controllers\Admin\AdminAboutCmsController;
 use App\Http\Controllers\Admin\AdminListingController;
-use App\Http\Controllers\Admin\AdminExperienceController;
-use App\Http\Controllers\Admin\AdminStoryController;
+use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\AdminPaymentController;
 use App\Http\Controllers\Admin\AdminPermissionController;
 use App\Http\Controllers\Admin\AdminRatingController;
 use App\Http\Controllers\Admin\AdminRoleController;
+use App\Http\Controllers\Admin\AdminStoryController;
 use App\Http\Controllers\Admin\AdminSystemController;
 use App\Http\Controllers\Admin\AdminUploadController;
 use App\Http\Controllers\Admin\AdminUserController;
@@ -31,9 +32,9 @@ use App\Http\Controllers\Client\ClientRatingController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ExperienceController;
 use App\Http\Controllers\LandingCmsController;
-use App\Http\Controllers\AboutCmsController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\StoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -43,7 +44,7 @@ Route::get('listings/random', [ListingController::class, 'random']);
 Route::get('listings/regions', [ListingController::class, 'regions']);
 Route::get('listings/{listing}/reviews', [ListingController::class, 'reviews']);
 Route::get('listings/{listing}', [ListingController::class, 'show']);
-Route::get('sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index']);
+Route::get('sitemap.xml', [SitemapController::class, 'index']);
 Route::post('contacts', [ContactController::class, 'store']);
 Route::get('landing-cms', [LandingCmsController::class, 'show']);
 Route::get('about-cms', [AboutCmsController::class, 'show']);
@@ -127,6 +128,7 @@ Route::prefix('admin')->group(function () {
             Route::get('bookings/{booking}', [AdminBookingController::class, 'show']);
             Route::post('bookings', [AdminBookingController::class, 'store']);
             Route::put('bookings/{booking}', [AdminBookingController::class, 'update']);
+            Route::post('bookings/{booking}/complete', [AdminBookingController::class, 'complete']);
             Route::delete('bookings/{booking}', [AdminBookingController::class, 'destroy']);
         });
 
